@@ -1,16 +1,16 @@
-use super::type_model::Type;
+use super::vcs_model::Vcs;
 use super::url_model::Url;
 
 struct Repository {
-    type: Type,
+    vcs: Vcs,
     url: Url,
 }
 
 impl Repository {
-    fn new(type, url) -> Repository {
+    fn new(vcs, url) -> Repository {
         Repository {
-            type,
-            url
+            vcs,
+            url,
         }
     }
 }
