@@ -1,0 +1,8 @@
+[package]
+name = "repository_application"
+version = "0.1.0"
+authors = ["Joshua Terrasas <joshua.terrasas@studentbody.byu.edu>"]
+edition = "2018"
+
+[dependencies]
+url = "*"
