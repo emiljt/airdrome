@@ -1,3 +1,3 @@
-enum Vcs {
+pub enum Vcs {
     Git
 }
