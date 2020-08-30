@@ -1,12 +1,12 @@
 # Builder image
 FROM fedora:latest AS builder
-# Install dependencies
+# Install build dependencies
 RUN dnf install -y rust cargo
 # Create new rust binary
 RUN USER=root cargo new --bin airdrome_api
 # Set working directory
 WORKDIR ${pwd}/airdrome_api
-# Add dependencies
+# Add dependencies file
 COPY ./Cargo.toml ./Cargo.toml
 # Build dependencies
 RUN cargo build --release
@@ -25,7 +25,7 @@ FROM fedora:latest
 EXPOSE 8080
 # User to run app
 ENV APP_USER=rust
-# Set directory of appk
+# Set directory of app
 ARG APP=/srv/airdrome_api
 # Update
 RUN dnf update -y \
