@@ -1,0 +1,10 @@
+version: "3"
+services:
+  api:
+    build: ./airdrome_api/
+    ports:
+      - "8080:8080"
+  web:
+    build: ./airdrome_hud/
+    ports:
+      - "3000:3000"
