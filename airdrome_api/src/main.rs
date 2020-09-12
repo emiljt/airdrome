@@ -7,8 +7,10 @@ use controllers::{objects_controller};
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .service(web::scope("/objects"))
-                .route("/", web::get().to(objects_controller::get_objects))
+            .service(web::scope("/objects")
+                .route("", web::get().to(objects_controller::get_objects))
+                .route("/{id}", web::get().to(objects_controller::get_object))
+            )
     })
     .bind("127.0.0.1:8080")?
     .run()

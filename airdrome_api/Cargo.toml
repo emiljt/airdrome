@@ -7,3 +7,6 @@ edition = "2018"
 [dependencies]
 actix-web = "2.0"
 actix-rt = ""
+serde = ""
+chrono = ""
+uuid = ""
