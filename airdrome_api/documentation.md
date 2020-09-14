@@ -26,21 +26,21 @@ optional parameters.
 
   + created:[lt,lte,gt,gte]: `2020-08-30` (string, optional) - date object was created
 
-    Date needs to be ISO 8601 formatted. The `lt` (less than), `lte`
+    Date needs to be RFC 3339 formatted. The `lt` (less than), `lte`
     (less than or equal to), `gt` (greater than), or `gte`
     (greater than or equal to) set how the date is used in searching for
     objects.
 
   + updated:[lt,lte,gt,gte]: `2020-08-30` (string, optional) - date object was last updated
 
-    Date needs to be ISO 8601 formatted. The `lt` (less than), `lte`
+    Date needs to be RFC 3339 formatted. The `lt` (less than), `lte`
     (less than or equal to), `gt` (greater than), or `gte`
     (greater than or equal to) set how the date is used in searching for
     objects.
 
   + name `corrosion` (string, optional) - name of the object
 
-  + microcontroller: `p1,p2` (enum[string], optional) - list of microcontrollers
+  + microcontrollers: `p1,p2` (enum[string], optional) - list of microcontrollers
 
     Comma deliminated list of microcontrollers that the object is designed for.
     One or more microcontrollers can be provided.
@@ -58,7 +58,22 @@ optional parameters.
       + `p1`
       + `p2`
 
-  + keyword: `` (string, optional) - list of keywords associated with the object
+  + languages: `pasm,spin` (enum[string], optional) - list of languages used in object
+
+    Comma deliminated list of languages that are used in the object. One or more
+    can be provided.
+
+    + Members
+      + `spin`
+      + `spin2`
+      + `pasm`
+      + `pasm2`
+      + `c`
+      + `basic`
+      + `forth`
+      + `python`
+
+  + keywords: `` (string, optional) - list of keywords associated with the object
 
     Comma deliminated list of keywords to use when searching for objects.
 
