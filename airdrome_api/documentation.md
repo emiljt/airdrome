@@ -26,14 +26,14 @@ optional parameters.
 
   + created:[lt,lte,gt,gte]: `2020-08-30` (string, optional) - date object was created
 
-    Date needs to be ISO 8601 formatted. The `lt` (less than), `lte`
+    Date needs to be RFC 3339 formatted. The `lt` (less than), `lte`
     (less than or equal to), `gt` (greater than), or `gte`
     (greater than or equal to) set how the date is used in searching for
     objects.
 
   + updated:[lt,lte,gt,gte]: `2020-08-30` (string, optional) - date object was last updated
 
-    Date needs to be ISO 8601 formatted. The `lt` (less than), `lte`
+    Date needs to be RFC 3339 formatted. The `lt` (less than), `lte`
     (less than or equal to), `gt` (greater than), or `gte`
     (greater than or equal to) set how the date is used in searching for
     objects.
