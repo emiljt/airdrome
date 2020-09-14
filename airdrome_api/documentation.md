@@ -11,7 +11,7 @@ Resources related to OBEX objects.
 
 ## Objects Collection [/objects]
 
-### List All Objects [GET /objects{?limit}{&created,updated,name,microcontroller,keyword,category}]
+### List All Objects [GET /objects{?limit}{&created,updated,name,targets,languages,keywords,categories}]
 
 Returns a list of objects. Allows for pagination and searching using the
 optional parameters.
@@ -40,10 +40,10 @@ optional parameters.
 
   + name `corrosion` (string, optional) - name of the object
 
-  + microcontrollers: `p1,p2` (enum[string], optional) - list of microcontrollers
+  + targets: `p1,p2` (enum[string], optional) - list of compatiable microcontrollers
 
     Comma deliminated list of microcontrollers that the object is designed for.
-    One or more microcontrollers can be provided.
+    One or more targets can be provided.
 
     + Members
       + `bs1`
@@ -58,10 +58,10 @@ optional parameters.
       + `p1`
       + `p2`
 
-  + languages: `pasm,spin` (enum[string], optional) - list of languages used in object
+  + languages: `pasm,pasm2` (enum[string], optional) - list of languages used in object
 
-    Comma deliminated list of languages that are used in the object. One or more
-    can be provided.
+    Comma deliminated list of languages used in the object.
+    One or more languages can be provided.
 
     + Members
       + `spin`
@@ -77,7 +77,7 @@ optional parameters.
 
     Comma deliminated list of keywords to use when searching for objects.
 
-  + category: `` (enum[string], optional) - comma deliminated list of categories
+  + categories: `` (enum[string], optional) - comma deliminated list of categories
 
     Comma deliminated of object categories. The categories are the same ones
     used in the official Parallax OBEX repository.
@@ -108,7 +108,7 @@ optional parameters.
         link: "https://airdrome.io/downloads/9b75b8ef-f58c-4cc0-8642-ab8405066eab"
       }
     }],
-    microcontroller: "p2",
+    targets: ["p2"],
     stats: [{
       name: "Total Downloads",
       value: "150",
