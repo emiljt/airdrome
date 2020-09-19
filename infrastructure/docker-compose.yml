@@ -1,0 +1,22 @@
+version: "3"
+services:
+  api:
+    build: ../airdrome_api/
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+  web:
+    build: ../airdrome_hud/
+    ports:
+      - "3000:3000"
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: true
+      MYSQL_DATABASE: airdrome_test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+    volumes:
+      - .:/docker-entrypoint-initdb.d/:z
