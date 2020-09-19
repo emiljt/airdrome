@@ -4,6 +4,8 @@ services:
     build: ../airdrome_api/
     ports:
       - "8080:8080"
+    depends_on:
+      - db
   web:
     build: ../airdrome_hud/
     ports:
@@ -16,3 +18,5 @@ services:
       MYSQL_DATABASE: airdrome_test
       MYSQL_USER: test
       MYSQL_PASSWORD: test
+    volumes:
+      - .:/docker-entrypoint-initdb.d/:z
