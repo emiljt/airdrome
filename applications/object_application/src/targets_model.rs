@@ -1,7 +1,11 @@
+use std::fmt;
+
+#[derive(Clone)]
 pub struct Targets {
-    targets: Vec<Target>,
+    pub value: Vec<Target>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Target {
     BS1,
     BS2,
@@ -19,7 +23,13 @@ pub enum Target {
 impl Targets {
     pub fn new(targets: Vec<Target>) -> Targets {
         Targets {
-            targets: targets,
+            value: targets,
         }
+    }
+}
+
+impl fmt::Display for Target {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }

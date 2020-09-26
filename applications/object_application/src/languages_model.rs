@@ -1,7 +1,11 @@
+use std::fmt;
+
+#[derive(Clone)]
 pub struct Languages {
-    languages: Vec<Language>,
+    pub value: Vec<Language>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Language {
     Spin,
     Spin2,
@@ -16,7 +20,13 @@ pub enum Language {
 impl Languages {
     pub fn new(languages: Vec<Language>) -> Languages {
         Languages {
-            languages: languages,
+            value: languages,
         }
+    }
+}
+
+impl fmt::Display for Language {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }

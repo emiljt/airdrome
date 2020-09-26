@@ -1,11 +1,12 @@
+#[derive(Clone)]
 pub struct Name {
-    name: String,
+    pub value: String,
 }
 
 impl Name {
     pub fn new(new_name: &str) -> Result<Name, &'static str> {
         Ok(Name {
-            name: new_name.to_string(),
+            value: new_name.to_string(),
         })
     }
 }

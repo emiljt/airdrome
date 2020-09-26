@@ -73,9 +73,9 @@ optional parameters.
       + `forth`
       + `python`
 
-  + keywords: `` (string, optional) - list of keywords associated with the object
+  + keywords: `` (string, optional) - keywords associated with the object
 
-    Comma deliminated list of keywords to use when searching for objects.
+    A string of words to use when searching for objects.
 
   + categories: `` (enum[string], optional) - comma deliminated list of categories
 
@@ -108,7 +108,14 @@ optional parameters.
         link: "https://airdrome.io/downloads/9b75b8ef-f58c-4cc0-8642-ab8405066eab"
       }
     }],
-    targets: ["p2"],
+    targets: [{
+      "p1",
+      "p2"
+    }],
+    languages: [{
+      "spin",
+      "spin2"
+    }],
     stats: [{
       name: "Total Downloads",
       value: "150",
@@ -129,7 +136,7 @@ Returns a specific object.
 + Request
 
 + Response 200 (applicatioin/json)
-  [{
+  {
     guid: "357b0c1c-81e3-47fd-9220-0c21cbf76396",
     name: "corrosion",
     license: "MIT",
@@ -149,14 +156,21 @@ Returns a specific object.
         link: "https://airdrome.io/downloads/9b75b8ef-f58c-4cc0-8642-ab8405066eab"
       }
     }],
-    microcontroller: "p2",
+    targets: [{
+      "p1",
+      "p2"
+    }],
+    languages: [{
+      "spin",
+      "spin2"
+    }],
     stats: [{
       name: "Total Downloads",
       value: "150",
       updated: "2020-08-30"
     }],
     categories: ["database"]
-  }]
+  }
 
 ## Group Stats
 

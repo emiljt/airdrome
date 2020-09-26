@@ -8,5 +8,8 @@ edition = "2018"
 actix-web = "2.0"
 actix-rt = ""
 serde = ""
+serde_json = ""
 chrono = ""
-uuid = ""
+uuid = { features = ["v4"] }
+sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql"] }
+object_application = { path = "../applications/object_application" }
