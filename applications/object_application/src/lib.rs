@@ -1,43 +1,127 @@
 mod object_model;
+mod id_model;
 mod name_model;
 mod description_model;
 mod languages_model;
 mod targets_model;
 mod object_factory;
+mod id_factory;
 mod name_factory;
 mod description_factory;
 mod languages_factory;
 mod targets_factory;
+mod object_repository;
 
-use object_model::Object;
+use std::convert::From;
 
-fn add_new_object(name: &str, description: &str, languages: Vec<&str>, targets: Vec<&str>)
-    -> Result<ObjectData, &'static str> {
+pub async fn add_new_object(name: &str, description: &str, languages: Vec<&str>, targets: Vec<&str>)
+    -> Result<Object, &'static str> {
     let new_object = object_factory::create_object(name, description, languages, targets)?;
 
-    Ok(ObjectData::from_object(new_object))
+    Ok(Object::from_object_model(new_object))
 }
 
-fn find_object(id: &str) -> Result<Object, &'static str> {
-    Err("No object found")
+pub async fn find_object(db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>, id: &str)
+    -> Result<Object, &'static str> {
+    match object_repository::read_object(db_connection, id).await {
+        Ok(object) => Ok(Object::from_object_model(object)),
+        Err(_) => Err("No object found"),
+    }
 }
 
-fn search_objects(name: Option<&str>, targets: Option<&str>, languages: Option<&str>,
-    keywords: Option<&str>, categories: Option<&str>, created: Option<&str>, updated: Option<&str>)
+pub async fn search_objects(db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    name: Option<&str>, targets: Option<Vec<&str>>, languages: Option<Vec<&str>>,
+    keywords: Option<&str>, categories: Option<Vec<&str>>, created: Option<&str>,
+    updated: Option<&str>)
     -> Vec<Object> {
     Vec::new()
 }
 
-struct ObjectData {
-    guid: String,
-    name: String,
+pub struct Object {
+    pub id: String,
+    pub name: String,
+    pub targets: Vec<Target>,
+    pub languages: Vec<Language>,
 }
 
-impl ObjectData {
-    fn from_object(object: Object) -> ObjectData {
-        ObjectData {
-            guid: "".to_string(),
-            name: "".to_string(),
+impl Object {
+    fn from_object_model(object_model: object_model::Object) -> Object {
+        let mut targets: Vec<Target> = Vec::new();
+        let mut languages: Vec<Language> = Vec::new();
+
+        for target in object_model.targets.value {
+            targets.push(Target::from(target));
+        }
+
+        for language in object_model.languages.value {
+            languages.push(Language::from(language));
+        }
+
+        Object {
+            id: object_model.id.value,
+            name: object_model.name.value,
+            targets: targets,
+            languages: languages,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Target {
+    BS1,
+    BS2,
+    BS2E,
+    BS2SX,
+    BS2P24,
+    BS2P40,
+    BS2PE,
+    BS2PX,
+    SX,
+    P1,
+    P2,
+}
+
+impl From<targets_model::Target> for Target {
+    fn from(item: targets_model::Target) -> Target {
+        match item {
+            targets_model::Target::BS1 => Target::BS1,
+            targets_model::Target::BS2 => Target::BS2,
+            targets_model::Target::BS2E => Target::BS2E,
+            targets_model::Target::BS2SX => Target::BS2SX,
+            targets_model::Target::BS2P24 => Target::BS2P24,
+            targets_model::Target::BS2P40 => Target::BS2P40,
+            targets_model::Target::BS2PE => Target::BS2PE,
+            targets_model::Target::BS2PX => Target::BS2PX,
+            targets_model::Target::SX => Target::SX,
+            targets_model::Target::P1 => Target::P1,
+            targets_model::Target::P2 => Target::P2,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Language {
+    Spin,
+    Spin2,
+    Pasm,
+    Pasm2,
+    C,
+    Basic,
+    Forth,
+    Python,
+}
+
+impl From<languages_model::Language> for Language {
+    fn from(item: languages_model::Language) -> Language {
+        match item {
+            languages_model::Language::Spin => Language::Spin,
+            languages_model::Language::Spin2 => Language::Spin2,
+            languages_model::Language::Pasm => Language::Pasm,
+            languages_model::Language::Pasm2 => Language::Pasm2,
+            languages_model::Language::C => Language::C,
+            languages_model::Language::Basic => Language::Basic,
+            languages_model::Language::Forth => Language::Forth,
+            languages_model::Language::Python => Language::Python,
         }
     }
 }
