@@ -1,5 +1,5 @@
-use std::convert::TryFrom;
 use super::languages_model::{Language, Languages};
+use std::convert::TryFrom;
 
 pub fn create_languages(languages: Vec<&str>) -> Result<Languages, &'static str> {
     let mut new_languages: Vec<Language> = Vec::new();

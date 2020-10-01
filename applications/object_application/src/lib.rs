@@ -1,39 +1,50 @@
-mod object_model;
-mod id_model;
-mod name_model;
-mod description_model;
-mod languages_model;
-mod targets_model;
-mod object_factory;
-mod id_factory;
-mod name_factory;
 mod description_factory;
+mod description_model;
+mod id_factory;
+mod id_model;
 mod languages_factory;
-mod targets_factory;
+mod languages_model;
+mod name_factory;
+mod name_model;
+mod object_factory;
+mod object_model;
 mod object_repository;
+mod targets_factory;
+mod targets_model;
 
 use std::convert::From;
 
-pub async fn add_new_object(name: &str, description: &str, languages: Vec<&str>, targets: Vec<&str>)
-    -> Result<Object, &'static str> {
+pub async fn add_new_object(
+    name: &str,
+    description: &str,
+    languages: Vec<&str>,
+    targets: Vec<&str>,
+) -> Result<Object, &'static str> {
     let new_object = object_factory::create_object(name, description, languages, targets)?;
 
     Ok(Object::from_object_model(new_object))
 }
 
-pub async fn find_object(db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>, id: &str)
-    -> Result<Object, &'static str> {
+pub async fn find_object(
+    db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    id: &str,
+) -> Result<Object, &'static str> {
     match object_repository::read_object(db_connection, id).await {
         Ok(object) => Ok(Object::from_object_model(object)),
         Err(_) => Err("No object found"),
     }
 }
 
-pub async fn search_objects(db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
-    name: Option<&str>, targets: Option<Vec<&str>>, languages: Option<Vec<&str>>,
-    keywords: Option<&str>, categories: Option<Vec<&str>>, created: Option<&str>,
-    updated: Option<&str>)
-    -> Vec<Object> {
+pub async fn search_objects(
+    db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    name: Option<&str>,
+    targets: Option<Vec<&str>>,
+    languages: Option<Vec<&str>>,
+    keywords: Option<&str>,
+    categories: Option<Vec<&str>>,
+    created: Option<&str>,
+    updated: Option<&str>,
+) -> Vec<Object> {
     Vec::new()
 }
 

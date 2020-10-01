@@ -12,4 +12,5 @@ serde_json = ""
 chrono = ""
 uuid = { features = ["v4"] }
 sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql"] }
+event_application = { path = "../applications/event_application" }
 object_application = { path = "../applications/object_application" }

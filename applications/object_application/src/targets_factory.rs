@@ -1,5 +1,5 @@
-use std::convert::TryFrom;
 use super::targets_model::{Target, Targets};
+use std::convert::TryFrom;
 
 pub fn create_targets(targets: Vec<&str>) -> Result<Targets, &'static str> {
     let mut new_targets: Vec<Target> = Vec::new();

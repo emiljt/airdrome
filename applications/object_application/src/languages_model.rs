@@ -19,9 +19,7 @@ pub enum Language {
 
 impl Languages {
     pub fn new(languages: Vec<Language>) -> Languages {
-        Languages {
-            value: languages,
-        }
+        Languages { value: languages }
     }
 }
 

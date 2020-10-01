@@ -1,13 +1,17 @@
-use std::convert::TryFrom;
+use actix_web::{web, HttpResponse, Responder};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use chrono::{NaiveDateTime};
-use actix_web::{HttpResponse, Responder, web};
 use sqlx::MySqlPool;
+use std::convert::TryFrom;
+use std::sync::mpsc;
 
-use object_application::{Object};
+use object_application::Object;
 
-pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<ObjectsQuery>)
-    -> impl Responder {
+pub async fn get_objects(
+    db_pool: web::Data<MySqlPool>,
+    event_tx: web::Data<mpsc::Sender<&str>>,
+    query: web::Query<ObjectsQuery>,
+) -> impl Responder {
     let mut targets: Vec<&str> = Vec::new();
     let mut languages: Vec<&str> = Vec::new();
     let mut categories: Vec<&str> = Vec::new();
@@ -20,16 +24,19 @@ pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<Object
                 match Target::try_from(item) {
                     Ok(i) => targets.push(item),
                     Err(_) => {
-                        return HttpResponse::BadRequest()
-                            .body("Invalid target");
-                    },
+                        return HttpResponse::BadRequest().body("Invalid target");
+                    }
                 }
             }
-        },
+        }
         _ => (),
     };
 
-    let targets = if targets.len() > 0 { Some(targets) } else { None };
+    let targets = if targets.len() > 0 {
+        Some(targets)
+    } else {
+        None
+    };
 
     match &query.languages {
         Some(list) => {
@@ -39,38 +46,37 @@ pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<Object
                 match Language::try_from(item) {
                     Ok(i) => languages.push(item),
                     Err(_) => {
-                        return HttpResponse::BadRequest()
-                            .body("Invalid language");
-                    },
+                        return HttpResponse::BadRequest().body("Invalid language");
+                    }
                 }
             }
-        },
+        }
         _ => (),
     };
 
-    let languages = if languages.len() > 0 { Some(languages) } else { None };
+    let languages = if languages.len() > 0 {
+        Some(languages)
+    } else {
+        None
+    };
 
     match &query.created {
-        Some(date) => {
-            match NaiveDateTime::parse_from_str(date, "%Y-%m-%dT%H:%M:%S") {
-                Ok(_) => (),
-                _ => {
-                    return HttpResponse::BadRequest()
-                        .body("Invalid created date, expected format: yyyy-mm-ddThh:mm:ss");
-                },
+        Some(date) => match NaiveDateTime::parse_from_str(date, "%Y-%m-%dT%H:%M:%S") {
+            Ok(_) => (),
+            _ => {
+                return HttpResponse::BadRequest()
+                    .body("Invalid created date, expected format: yyyy-mm-ddThh:mm:ss");
             }
         },
         None => (),
     };
 
     match &query.updated {
-        Some(date) => {
-            match NaiveDateTime::parse_from_str(date, "%Y-%m-%dT%H:%M:%S") {
-                Ok(_) => (),
-                _ => {
-                    return HttpResponse::BadRequest()
-                        .body("Invalid created date, expected format: yyyy-mm-ddThh:mm:ss");
-                },
+        Some(date) => match NaiveDateTime::parse_from_str(date, "%Y-%m-%dT%H:%M:%S") {
+            Ok(_) => (),
+            _ => {
+                return HttpResponse::BadRequest()
+                    .body("Invalid created date, expected format: yyyy-mm-ddThh:mm:ss");
             }
         },
         None => (),
@@ -84,26 +90,36 @@ pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<Object
                 match Category::try_from(item) {
                     Ok(i) => categories.push(item),
                     Err(_) => {
-                        return HttpResponse::BadRequest()
-                            .body("Invalid category");
-                    },
+                        return HttpResponse::BadRequest().body("Invalid category");
+                    }
                 }
             }
-        },
+        }
         _ => (),
     };
 
-    let categories = if categories.len() > 0 { Some(categories) } else { None };
-
+    let categories = if categories.len() > 0 {
+        Some(categories)
+    } else {
+        None
+    };
 
     let mut db_connection = match db_pool.acquire().await {
         Ok(connection) => connection,
         Err(_) => return HttpResponse::ServiceUnavailable().finish(),
     };
 
-    let objects = object_application::search_objects(&mut db_connection, query.name.as_deref(),
-        targets, languages, query.keywords.as_deref(), categories, query.created.as_deref(),
-        query.updated.as_deref()).await;
+    let objects = object_application::search_objects(
+        &mut db_connection,
+        query.name.as_deref(),
+        targets,
+        languages,
+        query.keywords.as_deref(),
+        categories,
+        query.created.as_deref(),
+        query.updated.as_deref(),
+    )
+    .await;
 
     let mut converted_objects: Vec<ObjectData> = Vec::new();
 
@@ -116,7 +132,7 @@ pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<Object
 
     let json = match serde_json::to_string(&converted_objects) {
         Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish()
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
     HttpResponse::Ok().body(format!("{}", json))
@@ -125,10 +141,7 @@ pub async fn get_objects(db_pool: web::Data<MySqlPool>, query: web::Query<Object
 pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) -> HttpResponse {
     let guid: uuid::Uuid = match uuid::Uuid::parse_str(&id) {
         Ok(i) => i,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-            .body(format!("Invalid guid given: {}", &id))
-        },
+        Err(_) => return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &id)),
     };
 
     let mut db_connection = match db_pool.acquire().await {
@@ -145,11 +158,11 @@ pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) ->
 
             let json = match serde_json::to_string(&data) {
                 Ok(r) => r,
-                Err(_) => return HttpResponse::InternalServerError().finish()
+                Err(_) => return HttpResponse::InternalServerError().finish(),
             };
 
             HttpResponse::Ok().body(format!("{}", json))
-        },
+        }
         Err(_) => HttpResponse::NotFound().finish(),
     }
 }
@@ -179,7 +192,7 @@ struct ObjectData {
     targets: Vec<Target>,
     languages: Vec<Language>,
     stats: Vec<Stat>,
-    categories: Vec<Category>
+    categories: Vec<Category>,
 }
 
 impl TryFrom<Object> for ObjectData {
@@ -337,10 +350,8 @@ pub struct Stat {
     updated: String,
 }
 
-
 #[derive(Debug, Deserialize, Serialize)]
-enum Category {
-}
+enum Category {}
 
 impl TryFrom<&str> for Category {
     type Error = &'static str;

@@ -1,9 +1,9 @@
-mod repository_model;
-mod url_model;
-mod vcs_model;
 mod repository_factory;
+mod repository_model;
 mod url_factory;
+mod url_model;
 mod vcs_factory;
+mod vcs_model;
 
 use repository_model::Repository;
 

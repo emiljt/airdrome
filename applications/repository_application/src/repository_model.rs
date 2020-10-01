@@ -1,5 +1,5 @@
-use super::vcs_model::Vcs;
 use super::url_model::Url;
+use super::vcs_model::Vcs;
 
 pub struct Repository {
     vcs: Vcs,
@@ -8,9 +8,6 @@ pub struct Repository {
 
 impl Repository {
     pub fn new(vcs: Vcs, url: Url) -> Repository {
-        Repository {
-            vcs,
-            url,
-        }
+        Repository { vcs, url }
     }
 }
