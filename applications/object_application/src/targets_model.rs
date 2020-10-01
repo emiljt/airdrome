@@ -22,9 +22,7 @@ pub enum Target {
 
 impl Targets {
     pub fn new(targets: Vec<Target>) -> Targets {
-        Targets {
-            value: targets,
-        }
+        Targets { value: targets }
     }
 }
 
