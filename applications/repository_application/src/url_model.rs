@@ -1,5 +1,5 @@
 pub struct Url {
-    address: String,
+    pub address: String,
 }
 
 impl Url {

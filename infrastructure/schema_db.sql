@@ -1,5 +1,9 @@
 USE `airdrome_test`
 
+/*
+Object application
+*/
+
 CREATE TABLE IF NOT EXISTS `object_application_languages` (
     `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(100) NOT NULL UNIQUE,
@@ -68,3 +72,17 @@ CREATE TABLE IF NOT EXISTS `object_application_object_targets` (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
+/*
+Repository application
+*/
+
+CREATE TABLE IF NOT EXISTS `repository_application_repositories` (
+    `id` MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `guid` VARCHAR(32) NOT NULL UNIQUE,
+    `url` VARCHAR(100) NOT NULL UNIQUE,
+    `path` VARCHAR(2500) NOT NULL UNIQUE,
+
+    PRIMARY KEY (`id`),
+);
+
