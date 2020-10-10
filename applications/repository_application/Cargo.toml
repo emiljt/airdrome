@@ -5,4 +5,7 @@ authors = ["Joshua Terrasas <joshua.terrasas@studentbody.byu.edu>"]
 edition = "2018"
 
 [dependencies]
+uuid = { features = ["v4"] }
 url = "*"
+git2 = "*"
+sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql"] }

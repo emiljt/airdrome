@@ -1,13 +1,17 @@
+use super::id_model::Id;
+use super::path_model::Path;
 use super::url_model::Url;
 use super::vcs_model::Vcs;
 
 pub struct Repository {
-    vcs: Vcs,
-    url: Url,
+    pub id: Id,
+    pub vcs: Vcs,
+    pub path: Path,
+    pub url: Url,
 }
 
 impl Repository {
-    pub fn new(vcs: Vcs, url: Url) -> Repository {
-        Repository { vcs, url }
+    pub fn new(id: Id, vcs: Vcs, path: Path, url: Url) -> Repository {
+        Repository { id, path, vcs, url }
     }
 }
