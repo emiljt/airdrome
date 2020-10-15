@@ -13,7 +13,7 @@ mod vcs_model;
 use repository_model::Repository;
 
 async fn add_new_repository(
-    db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
     path: &str,
     url: &str,
 ) -> Result<RepositoryData, &'static str> {

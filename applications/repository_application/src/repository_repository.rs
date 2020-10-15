@@ -1,8 +1,7 @@
 use super::repository_model::Repository;
-use sqlx::{Cursor, Row};
 
 pub async fn save_repository(
-    db: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
     repository: &Repository,
 ) -> Result<(), &'static str> {
     match sqlx::query(
@@ -13,7 +12,7 @@ pub async fn save_repository(
     .bind(&repository.id.value)
     .bind(&repository.url.address)
     .bind(&repository.path.value)
-    .execute(db)
+    .execute(&mut db)
     .await
     {
         Ok(_) => Ok(()),
