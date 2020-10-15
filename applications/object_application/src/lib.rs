@@ -26,7 +26,7 @@ pub async fn add_new_object(
 }
 
 pub async fn find_object(
-    db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
     id: &str,
 ) -> Result<Object, &'static str> {
     match object_repository::read_object(db_connection, id).await {
@@ -36,7 +36,7 @@ pub async fn find_object(
 }
 
 pub async fn search_objects(
-    db_connection: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,

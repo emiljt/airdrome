@@ -1,9 +1,9 @@
 use super::object_factory;
 use super::object_model::Object;
-use sqlx::{Cursor, Row};
+use sqlx::Row;
 
 async fn save_object(
-    db: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
     object: Object,
 ) -> Result<(), &'static str> {
     let mut object_targets_values: Vec<String> = Vec::new();
@@ -20,7 +20,7 @@ async fn save_object(
         object_targets_values.push(format!("(@new_object_id, (SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))", language));
     }
 
-    match sqlx::query(
+    match sqlx::query!(
         "BEGIN;
         INSERT INTO `object_application_objects` (`guid`, `name`, `description`)
         VALUES (?, ?, ?);
@@ -45,10 +45,10 @@ async fn save_object(
 }
 
 pub async fn read_object(
-    db: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
     id: &str,
 ) -> Result<Object, &'static str> {
-    let mut rows = sqlx::query(
+    let mut rows = sqlx::query!(
         "SELECT object.guid, object.name, object.description,
         GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
         GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
@@ -89,7 +89,7 @@ pub async fn read_object(
 }
 
 async fn read_objects(
-    db: &mut sqlx::pool::PoolConnection<sqlx::MySqlConnection>,
+    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -109,7 +109,7 @@ async fn read_objects(
     languages.insert_str(0, "'");
     languages.push('\'');
 
-    let mut rows = sqlx::query(
+    let mut rows = sqlx::query!(
         "SELECT object.guid, object.name, object.description,
         GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
         GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
