@@ -1,6 +1,6 @@
 use super::object_factory;
 use super::object_model::Object;
-use sqlx::Row;
+use sqlx::{Executor, Row};
 
 async fn save_object(
     mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
@@ -17,27 +17,51 @@ async fn save_object(
     }
 
     for language in object.languages.value.iter() {
-        object_targets_values.push(format!("(@new_object_id, (SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))", language));
+        object_targets_values.push(format!(
+            "(@new_object_id, (SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))",
+            language
+        ));
     }
 
-    match sqlx::query!(
-        "BEGIN;
-        INSERT INTO `object_application_objects` (`guid`, `name`, `description`)
-        VALUES (?, ?, ?);
-        SELECT LAST_INSERT_ID() INTO @new_object_id;
+    match db
+        .execute("START TRANSACTION")
+        .await
+        .and(
+            db.execute(sqlx::query!(
+                "INSERT INTO `object_application_objects` (`guid`, `name`, `description`)
+        VALUES (?, ?, ?);",
+                object.id.value,
+                object.name.value,
+                object.description.value,
+            ))
+            .await,
+        )
+        .and(
+            db.execute(
+                format!(
+                    "
         INSERT INTO `object_application_object_targets` (object_id, target_id)
-        VALUES ?;
+        VALUES {};",
+                    object_targets_values.join(", ")
+                )
+                .as_str(),
+            )
+            .await,
+        )
+        .and(
+            db.execute(
+                format!(
+                    "
         INSERT INTO `object_application_object_targets` (object_id, language_id)
-        VALUES ?;
-        COMMIT;",
-    )
-    .bind(object.id.value)
-    .bind(object.name.value)
-    .bind(object.description.value)
-    .bind(object_targets_values.join(", "))
-    .bind(object_languages_values.join(", "))
-    .execute(db)
-    .await
+        VALUES {};",
+                    object_languages_values.join(", ")
+                )
+                .as_str(),
+            )
+            .await,
+        )
+        .and(db.execute("COMMIT;").await)
+        .or(db.execute("ROLLBACK;").await)
     {
         Ok(_) => Ok(()),
         Err(_) => Err("Error saving object to database"),
@@ -48,8 +72,9 @@ pub async fn read_object(
     mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
     id: &str,
 ) -> Result<Object, &'static str> {
-    let mut rows = sqlx::query!(
-        "SELECT object.guid, object.name, object.description,
+    let mut rows = match db
+        .fetch_all(sqlx::query!(
+            "SELECT object.guid, object.name, object.description,
         GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
         GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
         FROM object_application_objects AS object
@@ -58,16 +83,21 @@ pub async fn read_object(
         JOIN object_application_object_targets AS targets ON object.id = targets.object_id
         JOIN object_application_targets AS target ON targets.target_id = target.id
         WHERE object.guid = ?;",
-    )
-    .bind(id)
-    .fetch(db);
+            id,
+        ))
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return Err("Error searching the database"),
+    };
+
     let mut objects: Vec<Object> = Vec::new();
 
-    while let Ok(row) = rows.next().await {
-        let row = match row {
-            Some(row) => row,
-            None => break,
-        };
+    for row in rows {
+        // let row = match row {
+        //     Some(row) => row,
+        //     None => break,
+        // };
 
         match object_factory::restore_object(
             row.get("guid"),
@@ -94,7 +124,7 @@ async fn read_objects(
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
     keywords: Option<&str>,
-) -> Vec<Object> {
+) -> Result<Vec<Object>, &'static str> {
     let mut targets = match targets {
         Some(targets) => targets.join("','"),
         None => "".to_string(),
@@ -109,8 +139,9 @@ async fn read_objects(
     languages.insert_str(0, "'");
     languages.push('\'');
 
-    let mut rows = sqlx::query!(
-        "SELECT object.guid, object.name, object.description,
+    let mut rows = match db
+        .fetch_all(sqlx::query!(
+            "SELECT object.guid, object.name, object.description,
         GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
         GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
         FROM object_application_objects AS object
@@ -119,20 +150,25 @@ async fn read_objects(
         JOIN object_application_object_targets AS targets ON object.id = targets.object_id
         JOIN object_application_targets AS target ON targets.target_id = target.id
         WHERE (object.name LIKE '%?%' OR target.name IN (?) OR language.name IN (?)
-        OR MATCH(`description`) AGAINST ('?'));",
-    )
-    .bind(name)
-    .bind(targets)
-    .bind(languages)
-    .bind(keywords)
-    .fetch(db);
+        OR MATCH(`description`) AGAINST (''));",
+            name,
+            targets,
+            //languages,
+            //keywords,
+        ))
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return Err("Error searching the database"),
+    };
+
     let mut objects: Vec<Object> = Vec::new();
 
-    while let Ok(row) = rows.next().await {
-        let row = match row {
-            Some(row) => row,
-            None => break,
-        };
+    for row in rows {
+        // let row = match row {
+        //     Some(row) => row,
+        //     None => break,
+        // };
 
         match object_factory::restore_object(
             row.get("guid"),
@@ -146,5 +182,5 @@ async fn read_objects(
         }
     }
 
-    objects
+    Ok(objects)
 }
