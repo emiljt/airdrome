@@ -7,7 +7,10 @@ pub fn create_event_thread() -> sync::mpsc::Sender<Event> {
         thread::sleep(time::Duration::from_secs(1));
 
         match rx.try_recv() {
-            Ok(event) => println!("Event: {:?}", event),
+            Ok(e) => match e {
+                ServerStarted => println!("ServerStarted"),
+                ObexObjectAdded => println!("ObexObjectAdded"),
+            },
             Err(_) => (),
         }
     });
@@ -18,6 +21,7 @@ pub fn create_event_thread() -> sync::mpsc::Sender<Event> {
 #[derive(Debug)]
 pub enum Event {
     ServerStarted,
+    ObexObjectAdded { name: String, path: String },
 }
 
 #[cfg(test)]

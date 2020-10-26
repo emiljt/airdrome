@@ -83,6 +83,6 @@ CREATE TABLE IF NOT EXISTS `repository_application_repositories` (
     `url` VARCHAR(100) NOT NULL UNIQUE,
     `path` VARCHAR(2500) NOT NULL UNIQUE,
 
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`id`)
 );
 

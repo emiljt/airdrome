@@ -9,7 +9,7 @@ use object_application::Object;
 
 pub async fn get_objects(
     db_pool: web::Data<MySqlPool>,
-    event_tx: web::Data<mpsc::Sender<&str>>,
+    event_tx: web::Data<mpsc::Sender<event_application::Event>>,
     query: web::Query<ObjectsQuery>,
 ) -> impl Responder {
     let mut targets: Vec<&str> = Vec::new();
@@ -110,7 +110,7 @@ pub async fn get_objects(
     };
 
     let objects = object_application::search_objects(
-        &mut db_connection,
+        db_connection,
         query.name.as_deref(),
         targets,
         languages,
@@ -149,7 +149,7 @@ pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) ->
         Err(_) => return HttpResponse::ServiceUnavailable().finish(),
     };
 
-    match object_application::find_object(&mut db_connection, &guid.to_string()).await {
+    match object_application::find_object(db_connection, &guid.to_string()).await {
         Ok(object) => {
             let data = match ObjectData::try_from(object) {
                 Ok(object) => object,
