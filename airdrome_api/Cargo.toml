@@ -15,3 +15,4 @@ sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql
 event_application = { path = "../applications/event_application" }
 object_application = { path = "../applications/object_application" }
 obex_application = { path = "../applications/obex_application" }
+events_service = { path = "../services/events_service" }
