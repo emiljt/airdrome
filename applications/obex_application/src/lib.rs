@@ -1,4 +1,4 @@
-use event_application::Event;
+use events_service::Event;
 use obex::obex::Obex;
 use std::path::Path;
 use std::sync::mpsc;

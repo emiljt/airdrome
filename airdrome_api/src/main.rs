@@ -3,6 +3,7 @@ mod controllers;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use controllers::objects_controller;
 use event_application;
+use events_service::Event;
 use std::env;
 
 #[actix_rt::main]
@@ -14,7 +15,7 @@ async fn main() -> std::io::Result<()> {
     let event_tx = event_application::create_event_thread();
 
     event_tx
-        .send(event_application::Event::ServerStarted)
+        .send(Event::ServerStarted)
         .expect("Unable to send server started event");
 
     HttpServer::new(move || {

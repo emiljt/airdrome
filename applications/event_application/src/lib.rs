@@ -1,3 +1,4 @@
+use events_service::Event;
 use std::{sync, thread, time};
 
 pub fn create_event_thread() -> sync::mpsc::Sender<Event> {
@@ -16,12 +17,6 @@ pub fn create_event_thread() -> sync::mpsc::Sender<Event> {
     });
 
     tx
-}
-
-#[derive(Debug)]
-pub enum Event {
-    ServerStarted,
-    ObexObjectAdded { name: String, path: String },
 }
 
 #[cfg(test)]
