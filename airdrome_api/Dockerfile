@@ -1,12 +1,14 @@
 # Builder image
 FROM fedora:latest AS builder
+# Set build environment variables
+#ENV SQLX_OFFLINE=false
 # Install build dependencies
 RUN dnf install -y rust cargo openssl-devel
 # Create new rust binary
 RUN USER=root cargo new --bin airdrome_api
 # Set working directory
 WORKDIR ${pwd}/airdrome_api
-# Add dependencies file
+# Add Cargo file to compile only dependencies
 COPY ./Cargo.toml ./Cargo.toml
 # Build dependencies
 RUN cargo build --release

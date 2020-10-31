@@ -1,0 +1,141 @@
+{
+  "db": "MySQL",
+  "4037c56bd4fdb5abd6d0b3bd026740c24fe3c8042a0956cb887739361ef7fafd": {
+    "query": "SELECT object.guid, object.name, object.description,\n        GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,\n        GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages\n        FROM object_application_objects AS object\n        LEFT JOIN object_application_object_languages AS languages ON object.id = languages.object_id\n        LEFT JOIN object_application_languages AS language ON language.id = languages.language_id\n        LEFT JOIN object_application_object_targets AS targets ON object.id = targets.object_id\n        LEFT JOIN object_application_targets AS target ON targets.target_id = target.id\n        WHERE object.guid = ?;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guid",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4100
+            },
+            "char_set": 224,
+            "max_size": 128
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4100
+            },
+            "char_set": 224,
+            "max_size": 400
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 8
+            },
+            "char_set": 224,
+            "max_size": 10000
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "targets",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 0
+            },
+            "char_set": 224,
+            "max_size": 16777216
+          }
+        },
+        {
+          "ordinal": 4,
+          "name": "languages",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 0
+            },
+            "char_set": 224,
+            "max_size": 16777216
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "937375f1f3417bb2dd918eccb66831901d41a1b23f6acc06d9011d020585442c": {
+    "query": "INSERT INTO `object_application_objects` (`guid`, `name`, `description`) VALUES (?, ?, ?);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "c3a66af5ee8bbcd280440e135ace1e442bb7faed1a34e4729c6ae0f96fe7cadf": {
+    "query": "SELECT object.guid, object.name, object.description\n            #GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,\n            #GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages\n            FROM object_application_objects AS object\n            LEFT JOIN object_application_object_languages AS languages ON object.id = languages.object_id\n            LEFT JOIN object_application_languages AS language ON language.id = languages.language_id\n            LEFT JOIN object_application_object_targets AS targets ON object.id = targets.object_id\n            LEFT JOIN object_application_targets AS target ON targets.target_id = target.id\n            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?)\n            OR MATCH(`description`) AGAINST (?));",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guid",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4101
+            },
+            "char_set": 224,
+            "max_size": 128
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4101
+            },
+            "char_set": 224,
+            "max_size": 400
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 8
+            },
+            "char_set": 224,
+            "max_size": 10000
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": [
+        false,
+        false,
+        true
+      ]
+    }
+  }
+}
