@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
-use events_service::Event;
+// use events_service::Event;
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use std::convert::TryFrom;
@@ -10,7 +10,7 @@ use object_application::Object;
 
 pub async fn get_objects(
     db_pool: web::Data<MySqlPool>,
-    event_tx: web::Data<mpsc::Sender<Event>>,
+    // event_tx: web::Data<mpsc::Sender<Event>>,
     query: web::Query<ObjectsQuery>,
 ) -> impl Responder {
     let mut targets: Vec<&str> = Vec::new();

@@ -18,7 +18,7 @@ services:
       - "3306:3306"
     restart: always
     environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: "true"
+      MYSQL_RANDOM_ROOT_PASSWORD: true
       MYSQL_DATABASE: airdrome_test
       MYSQL_USER: test
       MYSQL_PASSWORD: test

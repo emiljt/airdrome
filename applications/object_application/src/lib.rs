@@ -15,12 +15,14 @@ mod targets_model;
 use std::convert::From;
 
 pub async fn add_new_object(
+    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
     name: &str,
     description: &str,
     languages: Vec<&str>,
     targets: Vec<&str>,
 ) -> Result<Object, &'static str> {
     let new_object = object_factory::create_object(name, description, languages, targets)?;
+    object_repository::save_object(db_connection, &new_object).await?;
 
     Ok(Object::from_object_model(new_object))
 }
@@ -45,7 +47,18 @@ pub async fn search_objects(
     created: Option<&str>,
     updated: Option<&str>,
 ) -> Vec<Object> {
-    Vec::new()
+    let mut results = Vec::new();
+
+    match object_repository::read_objects(db_connection, name, targets, languages, keywords).await {
+        Ok(objects) => {
+            for result in objects {
+                results.push(Object::from_object_model(result));
+            }
+
+            results
+        }
+        Err(e) => panic!(e),
+    }
 }
 
 pub struct Object {

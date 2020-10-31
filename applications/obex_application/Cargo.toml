@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 obex = { path = "../../../obex_rs" }
 events_service = { path = "../../services/events_service" }
+object_application = { path = "../object_application" }
+sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql"] }

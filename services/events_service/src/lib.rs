@@ -1,5 +1,4 @@
 #[derive(Debug)]
 pub enum Event {
-    ServerStarted,
-    ObexObjectAdded { name: String, path: String },
+    ServerStarted { temp_path: String },
 }

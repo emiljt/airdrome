@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 events_service = { path = "../../services/events_service" }
+obex_application = { path = "../obex_application" }
