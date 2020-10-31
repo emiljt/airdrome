@@ -1,6 +1,9 @@
+mod applications;
 mod controllers;
+mod services;
 
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use applications::obex_application;
 use controllers::objects_controller;
 // use event_application;
 // use events_service::Event;

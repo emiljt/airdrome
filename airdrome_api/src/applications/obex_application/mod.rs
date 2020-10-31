@@ -1,4 +1,5 @@
-use events_service::Event;
+use super::object_application;
+use crate::services::events_service::Event;
 use obex::obex::Obex;
 use std::path::Path;
 use std::sync::mpsc;

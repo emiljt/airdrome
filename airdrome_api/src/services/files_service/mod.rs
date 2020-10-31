@@ -1,4 +1,5 @@
 use std::io::prelude::*;
+use zip;
 
 pub fn create_zip_file(
     target: &std::path::Path,

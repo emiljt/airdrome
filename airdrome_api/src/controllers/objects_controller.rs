@@ -1,12 +1,11 @@
 use actix_web::{web, HttpResponse, Responder};
 use chrono::NaiveDateTime;
 // use events_service::Event;
+use crate::applications::object_application;
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use std::convert::TryFrom;
 use std::sync::mpsc;
-
-use object_application::Object;
 
 pub async fn get_objects(
     db_pool: web::Data<MySqlPool>,
@@ -196,10 +195,10 @@ struct ObjectData {
     categories: Vec<Category>,
 }
 
-impl TryFrom<Object> for ObjectData {
+impl TryFrom<object_application::Object> for ObjectData {
     type Error = &'static str;
 
-    fn try_from(object: Object) -> Result<Self, Self::Error> {
+    fn try_from(object: object_application::Object) -> Result<Self, Self::Error> {
         let mut targets = Vec::new();
         let mut languages = Vec::new();
 
