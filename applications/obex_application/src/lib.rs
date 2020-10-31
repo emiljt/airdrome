@@ -3,10 +3,10 @@ use obex::obex::Obex;
 use std::path::Path;
 use std::sync::mpsc;
 
-pub fn sync(event_tx: mpsc::Sender<Event>, path: &str) {
+pub async fn sync(db_pool: sqlx::Pool<sqlx::MySql>, path: &str) {
     let path = Path::new(path);
     let obex = Obex::new(
-        "",
+        "https://github.com/parallaxinc/propeller.git",
         &path
             .to_str()
             .expect("Unable able to convert string to path"),
@@ -17,22 +17,44 @@ pub fn sync(event_tx: mpsc::Sender<Event>, path: &str) {
 
     for object in &obex.community_categories {}
 
-    for object in &obex.official_objects {
-        event_tx
-            .send(Event::ObexObjectAdded {
-                name: object.name.to_string(),
-                path: object.path.to_string(),
-            })
-            .expect("Error sending obexObjectAdded event");
-    }
+    // for object in &obex.official_objects {
+    //     let mut db_connection = db_pool
+    //         .acquire()
+    //         .await
+    //         .expect("Unable to connect to database");
+
+    //     match object_application::add_new_object(
+    //         db_connection,
+    //         &object.name,
+    //         "",
+    //         Vec::new(),
+    //         Vec::new(),
+    //     )
+    //     .await
+    //     {
+    //         Ok(o) => println!("Added new object from obex: {}", o.name),
+    //         Err(_) => (),
+    //     };
+    // }
 
     for object in &obex.community_objects {
-        event_tx
-            .send(Event::ObexObjectAdded {
-                name: object.name.to_string(),
-                path: object.path.to_string(),
-            })
-            .expect("Error sending obexObjectAdded event");
+        let mut db_connection = db_pool
+            .acquire()
+            .await
+            .expect("Unable to connect to database");
+
+        match object_application::add_new_object(
+            db_connection,
+            &object.name,
+            "",
+            Vec::new(),
+            Vec::new(),
+        )
+        .await
+        {
+            Ok(o) => println!("Added new object from obex: {}", o.name),
+            Err(_) => (),
+        };
     }
 }
 
