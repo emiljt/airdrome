@@ -1,0 +1,14 @@
+db:
+    image: mariadb
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: true
+      MYSQL_DATABASE: airdrome_test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+    volumes:
+      - .:/docker-entrypoint-initdb.d/:z
+    networks:
+      - airdrome-network
