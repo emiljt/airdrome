@@ -1,7 +1,7 @@
 # Builder image
-FROM fedora:latest AS builder
+FROM node:latest AS builder
 # Install dependencies
-RUN dnf install -y nodejs
+# RUN dnf install -y nodejs
 # Set working directory
 WORKDIR ${pwd}/airdrome_hud
 # Add dependencies file
@@ -18,7 +18,7 @@ RUN rm -rf node_modules
 RUN npm ci --prod
 
 # App image
-FROM fedora:latest
+FROM node:latest
 # Expose server port
 EXPOSE 3000
 # User to run app
@@ -26,9 +26,9 @@ ENV APP_USER=sapper
 # Set directory of app
 ARG APP=/srv/airdrome_hud
 # Update
-RUN dnf update -y \
-    && dnf install -y nodejs \
-    && dnf clean all
+# RUN dnf update -y \
+# && dnf install -y nodejs \
+# && dnf clean all
 # Create user and group to run app
 RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \

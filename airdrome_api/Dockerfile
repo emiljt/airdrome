@@ -1,7 +1,7 @@
 # Builder image
-FROM fedora:latest AS builder
+FROM rust:latest AS builder
 # Install build dependencies
-RUN dnf install -y rust cargo openssl-devel
+# RUN dnf install -y rust cargo openssl-devel
 # Create new rust binary
 RUN USER=root cargo new --bin airdrome_api
 # Set working directory
@@ -28,8 +28,8 @@ ENV APP_USER=rust
 # Set directory of app
 ARG APP=/srv/airdrome_api
 # Update
-RUN dnf update -y \
-    && dnf clean all
+# RUN dnf update -y \
+# && dnf clean all
 # Create user and group to run app
 RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \
