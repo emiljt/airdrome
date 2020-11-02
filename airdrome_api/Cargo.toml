@@ -11,6 +11,6 @@ serde = ""
 serde_json = ""
 chrono = ""
 uuid = { features = ["v4"] }
-sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql"] }
+sqlx = { default-features = false, features = ["runtime-tokio", "macros", "mysql", "offline"] }
 obex = ""
 zip = ""

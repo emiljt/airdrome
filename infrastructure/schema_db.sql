@@ -1,4 +1,4 @@
-USE `airdrome_test`
+USE `airdrome`
 
 /*
 Object application
