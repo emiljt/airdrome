@@ -1,26 +1,14 @@
 version: "3"
 services:
+  web:
+    build: ../airdrome_hud/
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
   api:
     build: ../airdrome_api/
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=mysql://test:test@db/airdrome_test
-    depends_on:
-      - db
-  # web:
-  #   build: ../airdrome_hud/
-  #   ports:
-  #     - "3000:3000"
-  db:
-    image: mariadb
-    ports:
-      - "3306:3306"
-    restart: always
-    environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: true
-      MYSQL_DATABASE: airdrome_test
-      MYSQL_USER: test
-      MYSQL_PASSWORD: test
-    volumes:
-      - .:/docker-entrypoint-initdb.d/:z
+      - DATABASE_URL=$DATABASE_URL
+    restart: unless-stopped
