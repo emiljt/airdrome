@@ -71,7 +71,7 @@ pub async fn save_object(
         .await
     {
         Ok(_) => Ok(()),
-        Err(e) => panic!(e),
+        Err(e) => panic!("{:?}", e),
     }
 }
 
@@ -202,7 +202,7 @@ pub async fn read_objects(
             Vec::new(),
         ) {
             Ok(object) => objects.push(object),
-            Err(e) => panic!(e),
+            Err(e) => panic!("{:?}", e),
         }
     }
 
