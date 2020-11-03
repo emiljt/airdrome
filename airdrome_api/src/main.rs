@@ -33,6 +33,9 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::get().to(objects_controller::get_objects))
                     .route("/{id}", web::get().to(objects_controller::get_object)),
             )
+            .service(
+                web::scope("/health").route("/heartbeat", web::get().to(|| HttpResponse::Ok())),
+            )
     })
     .bind("127.0.0.1:8080")
     .unwrap()
