@@ -1,27 +1,27 @@
 name: airdrome
-
+region: nyc
 services:
-- name: api
-  github:
-    repo: emiljt/airdrome
-    branch: master
-    deploy_on_push: true
-  source_dir: airdrome_api
-  dockerfile_path: airdrome_api/Dockerfile
-  envs:
-  - key: DATABASE_URL
-    value:
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  routes:
-  - path: /api
+  - name: api
+    github:
+      repo: emiljt/airdrome
+      branch: master
+      deploy_on_push: true
+    source_dir: airdrome_api
+    dockerfile_path: airdrome_api/Dockerfile
+    envs:
+    - key: DATABASE_URL
+      value:
+      scope: RUN_AND_BUILD_TIME
+      type: SECRET
+    routes:
+    - path: /api
 
   - name: web
-  github:
-    repo: emiljt/airdrome
-    branch: master
-    deploy_on_push: true
-  source_dir: airdrome_hud
-  dockerfile_path: airdrome_hud/Dockerfile
-  routes:
-  - path: /
+    github:
+      repo: emiljt/airdrome
+      branch: master
+      deploy_on_push: true
+    source_dir: airdrome_hud
+    dockerfile_path: airdrome_hud/Dockerfile
+    routes:
+    - path: /
