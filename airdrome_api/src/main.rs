@@ -34,12 +34,12 @@ async fn main() -> std::io::Result<()> {
             .data(db_pool.clone())
             // .data(event_tx.clone())
             .service(
-                web::scope("/api/objects")
+                web::scope("/objects")
                     .route("", web::get().to(objects_controller::get_objects))
                     .route("/{id}", web::get().to(objects_controller::get_object)),
             )
             .service(
-                web::scope("/api/health").route("/heartbeat", web::get().to(|| HttpResponse::Ok())),
+                web::scope("/health").route("/heartbeat", web::get().to(|| HttpResponse::Ok())),
             )
     })
     .bind("0.0.0.0:8080")
