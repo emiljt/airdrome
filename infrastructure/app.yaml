@@ -1,27 +1,53 @@
-name: airdrome
-region: nyc
-services:
-  - name: api
-    github:
-      repo: emiljt/airdrome
-      branch: master
-      deploy_on_push: true
-    source_dir: airdrome_api
-    dockerfile_path: airdrome_api/Dockerfile
+databases:
+  - cluster_name: airdrome-db-mysql
+    db_name: airdrome
+    db_user: app
+    engine: MYSQL
+    name: airdrome-db-mysql
+    production: true
+    version: "8"
+  domains:
+  - domain: www.airdrome.org
+    type: PRIMARY
+  name: airdrome
+  region: nyc
+  services:
+  - dockerfile_path: airdrome_api/Dockerfile
     envs:
+    - key: SQLX_OFFLINE
+      scope: RUN_AND_BUILD_TIME
+      value: "false"
+    - key: RUST_BACKTRACE
+      scope: RUN_AND_BUILD_TIME
+      value: full
     - key: DATABASE_URL
-      value:
       scope: RUN_AND_BUILD_TIME
       type: SECRET
-    routes:
-    - path: /api
-
-  - name: web
+      value: EV[1:43C787O4OAo616+Xa85JzI9S4SkbIss0:6ctX4Nm0bX6MTQqqeUyQM1+/IfpOKNHuw9awnbGcRD078z2i4BGLQ1PRSO2q1iIQtD1U2RgWJVAmIxDZ4aVWOs3NS/ARrooyItQr/aY8paUuR85NnOZ52P/2Txhy1RvNIoZxvn0jzrOYLjd+A+7XnJvUtPjrT2NHgClqvDw811aXaP4A56HMy+Y=]
     github:
-      repo: emiljt/airdrome
       branch: master
       deploy_on_push: true
-    source_dir: airdrome_hud
-    dockerfile_path: airdrome_hud/Dockerfile
+      repo: emiljt/airdrome
+    health_check:
+      http_path: /health/heartbeat
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    name: api
+    routes:
+    - path: /api
+    source_dir: airdrome_api
+  - dockerfile_path: airdrome_hud/Dockerfile
+    github:
+      branch: master
+      deploy_on_push: true
+      repo: emiljt/airdrome
+    health_check:
+      http_path: /
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    name: web
     routes:
     - path: /
+    source_dir: airdrome_hud
