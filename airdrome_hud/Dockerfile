@@ -20,7 +20,7 @@ RUN npm ci --prod
 # App image
 FROM node:latest
 # Expose server port
-EXPOSE 3000
+EXPOSE $PORT
 # User to run app
 ENV APP_USER=sapper
 # Set directory of app

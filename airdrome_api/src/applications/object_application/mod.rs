@@ -57,7 +57,7 @@ pub async fn search_objects(
 
             results
         }
-        Err(e) => panic!(e),
+        Err(e) => panic!("{:?}", e),
     }
 }
 
