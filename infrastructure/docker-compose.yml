@@ -15,6 +15,13 @@ services:
       - DATABASE_URL=mysql://dev:dev@db/airdrome
     restart: unless-stopped
     depends_on: db
+  proxy:
+    image: nginx:latest
+    ports:
+      - "2000:80"
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/proxy.conf
   db:
     image: mysql
     ports:

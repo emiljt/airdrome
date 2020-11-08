@@ -2,7 +2,7 @@ mod applications;
 mod controllers;
 mod services;
 
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer, Responder};
 use applications::obex_application;
 use controllers::objects_controller;
 // use event_application;
@@ -30,7 +30,9 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(Logger::default())
+            .wrap(middleware::Logger::default())
+            // .wrap(middleware::DefaultHeaders::new().header("Access-Control-Allow-Origin", "*"))
+            // .wrap(middleware::Compress::default())
             .data(db_pool.clone())
             // .data(event_tx.clone())
             .service(

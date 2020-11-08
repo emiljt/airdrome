@@ -9,11 +9,7 @@
 </style>
 
 <stats>
-  <div>
-    <strong>100</strong> Objects
-  </div>
+  <div><strong>-</strong> Objects</div>
 
-  <div>
-    <strong>100</strong> Downloads
-  </div>
+  <div><strong>-</strong> Downloads</div>
 </stats>
