@@ -1,17 +1,27 @@
 version: "3"
 services:
-  # api:
-  #   build: ../airdrome_api/
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     - DATABASE_URL
-  #   depends_on:
-  #     - db
-  # web:
-  #   build: ../airdrome_hud/
-  #   ports:
-  #     - "3000:3000"
+  proxy:
+    image: nginx:latest
+    ports:
+      - "2000:80"
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/proxy.conf
+  web:
+    build: ../airdrome_hud/
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    restart: unless-stopped
+  api:
+    build: ../airdrome_api/
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=mysql://dev:dev@db/airdrome
+    restart: unless-stopped
+    depends_on: db
   db:
     image: mariadb
     ports:

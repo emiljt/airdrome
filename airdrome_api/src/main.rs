@@ -1,9 +1,11 @@
 mod controllers;
 
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer, Responder};
+use applications::obex_application;
 use controllers::objects_controller;
 // use event_application;
 // use events_service::Event;
+use env_logger::Env;
 use std::env;
 
 #[actix_rt::main]
@@ -23,6 +25,12 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+<<<<<<< Updated upstream
+=======
+            .wrap(middleware::Logger::default())
+            // .wrap(middleware::DefaultHeaders::new().header("Access-Control-Allow-Origin", "*"))
+            // .wrap(middleware::Compress::default())
+>>>>>>> Stashed changes
             .data(db_pool.clone())
             // .data(event_tx.clone())
             .service(

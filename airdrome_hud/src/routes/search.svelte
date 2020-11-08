@@ -1,1 +1,5 @@
-<h2>Results for...</h2>
+<script>
+    import Search from "../components/Search.svelte";
+</script>
+
+<Search />
