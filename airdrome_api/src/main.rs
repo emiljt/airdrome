@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     //         temp_path: "/tmp/obex".to_string(),
     //     })
     //     .expect("Unable to send server started event");
-    // obex_application::sync(db_pool.clone(), "/tmp/obex").await;
+    obex_application::sync(db_pool.clone(), "/tmp/obex").await;
 
     HttpServer::new(move || {
         App::new()

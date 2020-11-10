@@ -4,8 +4,6 @@ services:
     build: ../airdrome_hud/
     ports:
       - "3000:3000"
-    environment:
-      - PORT=3000
     restart: unless-stopped
   api:
     build: ../airdrome_api/
