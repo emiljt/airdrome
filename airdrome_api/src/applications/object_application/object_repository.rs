@@ -17,7 +17,7 @@ pub async fn save_object(
     }
 
     for language in object.languages.value.iter() {
-        object_targets_values.push(format!(
+        object_languages_values.push(format!(
             "(@new_object_id, (SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))",
             language
         ));
@@ -89,7 +89,8 @@ pub async fn read_object(
         LEFT JOIN object_application_languages AS language ON language.id = languages.language_id
         LEFT JOIN object_application_object_targets AS targets ON object.id = targets.object_id
         LEFT JOIN object_application_targets AS target ON targets.target_id = target.id
-        WHERE object.guid = ?;",
+        WHERE object.guid = ?
+        GROUP BY object.guid;",
             id.replace("-", ""),
         ))
         .await
