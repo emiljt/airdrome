@@ -1,9 +1,13 @@
+use super::id_factory;
+use super::id_model::Id;
 use super::object_factory;
 use super::object_model::Object;
+use super::versions_repository;
 use sqlx::{Executor, Row};
 
 pub async fn save_object(
-    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
+    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
     object: &Object,
 ) -> Result<(), &'static str> {
     let mut object_targets_values: Vec<String> = Vec::new();
@@ -11,14 +15,16 @@ pub async fn save_object(
 
     for target in object.targets.value.iter() {
         object_targets_values.push(format!(
-            "(@new_object_id, (SELECT `id` FROM `object_application_targets` WHERE `name` = '{}'))",
+            "(@new_object_id, (
+                SELECT `id` FROM `object_application_targets` WHERE `name` = '{}'))",
             target
         ));
     }
 
     for language in object.languages.value.iter() {
         object_languages_values.push(format!(
-            "(@new_object_id, (SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))",
+            "(@new_object_id, (
+                SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))",
             language
         ));
     }
@@ -61,37 +67,61 @@ pub async fn save_object(
     //     )
     //     .and(db.execute("COMMIT;").await)
     //     .or(db.execute("ROLLBACK;").await)
-    match db
+
+    let mut db_connection = match db_pool.acquire().await {
+        Ok(connection) => connection,
+        Err(_) => panic!("Unable to open db connection"),
+    };
+
+    let object_id = match db_connection
         .execute(sqlx::query!(
-                            "INSERT INTO `object_application_objects` (`guid`, `name`, `description`) VALUES (?, ?, ?);",
-                            object.id.value.replace("-", ""),
-                            object.name.value,
-                            object.description.value,
+            "INSERT INTO `object_application_objects`
+            (`guid`, `name`, `description`)
+            VALUES (?, ?, ?);",
+            object.id.uuid(),
+            object.name.value,
+            object.description.value,
         ))
         .await
     {
-        Ok(_) => Ok(()),
+        Ok(r) => r.last_insert_id(),
         Err(e) => panic!("{:?}", e),
-    }
+    };
+
+    versions_repository::save_versions(db_pool, object_id, &object.versions)
+        .await
+        .expect("Error saving object versions");
+
+    Ok(())
 }
 
 pub async fn read_object(
-    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    id: &str,
+    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    id: &Id,
 ) -> Result<Object, &'static str> {
-    let mut rows = match db
+    let mut db_connection = match db_pool.acquire().await {
+        Ok(connection) => connection,
+        Err(_) => panic!("Unable to open db connection"),
+    };
+
+    let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT object.guid, object.name, object.description,
+            "SELECT object.id, object.guid, object.name, object.description,
         GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
         GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
         FROM object_application_objects AS object
-        LEFT JOIN object_application_object_languages AS languages ON object.id = languages.object_id
-        LEFT JOIN object_application_languages AS language ON language.id = languages.language_id
-        LEFT JOIN object_application_object_targets AS targets ON object.id = targets.object_id
-        LEFT JOIN object_application_targets AS target ON targets.target_id = target.id
+        LEFT JOIN object_application_object_languages AS languages
+        ON object.id = languages.object_id
+        LEFT JOIN object_application_languages AS language
+        ON language.id = languages.language_id
+        LEFT JOIN object_application_object_targets AS targets
+        ON object.id = targets.object_id
+        LEFT JOIN object_application_targets AS target
+        ON targets.target_id = target.id
         WHERE object.guid = ?
         GROUP BY object.guid;",
-            id.replace("-", ""),
+            &id.uuid(),
         ))
         .await
     {
@@ -107,6 +137,10 @@ pub async fn read_object(
         //     None => break,
         // };
 
+        let versions = versions_repository::read_versions(db_pool, row.get("id"))
+            .await
+            .expect("Error restoring object versions");
+
         match object_factory::restore_object(
             row.get("guid"),
             row.get("name"),
@@ -119,6 +153,7 @@ pub async fn read_object(
                 .unwrap_or("")
                 .split_terminator(",")
                 .collect::<Vec<&str>>(),
+            versions,
         ) {
             Ok(object) => objects.push(object),
             Err(_) => return Err("Error reading object from database"),
@@ -133,7 +168,8 @@ pub async fn read_object(
 }
 
 pub async fn read_objects(
-    mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
+    // db: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -161,16 +197,25 @@ pub async fn read_objects(
 
     let keywords = keywords.unwrap_or("");
 
-    let mut rows = match db
+    let mut db_connection = match db_pool.acquire().await {
+        Ok(connection) => connection,
+        Err(_) => panic!("Unable to open db connection"),
+    };
+
+    let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT object.guid, object.name, object.description
+            "SELECT object.id, object.guid, object.name, object.description
             #GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
             #GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
             FROM object_application_objects AS object
-            LEFT JOIN object_application_object_languages AS languages ON object.id = languages.object_id
-            LEFT JOIN object_application_languages AS language ON language.id = languages.language_id
-            LEFT JOIN object_application_object_targets AS targets ON object.id = targets.object_id
-            LEFT JOIN object_application_targets AS target ON targets.target_id = target.id
+            LEFT JOIN object_application_object_languages AS languages
+            ON object.id = languages.object_id
+            LEFT JOIN object_application_languages AS language
+            ON language.id = languages.language_id
+            LEFT JOIN object_application_object_targets AS targets
+            ON object.id = targets.object_id
+            LEFT JOIN object_application_targets AS target
+            ON targets.target_id = target.id
             WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?)
             OR MATCH(`description`) AGAINST (?));",
             format!("%{}%", name),
@@ -187,6 +232,11 @@ pub async fn read_objects(
     let mut objects: Vec<Object> = Vec::new();
 
     for row in rows {
+        // let id = row.get("id")?;
+        let versions = versions_repository::read_versions(db_pool, row.get("id"))
+            .await
+            .expect("Error restoring object versions");
+
         match object_factory::restore_object(
             row.get("guid"),
             row.get("name"),
@@ -201,6 +251,7 @@ pub async fn read_objects(
             //     .split_terminator(",")
             //     .collect::<Vec<&str>>(),
             Vec::new(),
+            versions,
         ) {
             Ok(object) => objects.push(object),
             Err(e) => panic!("{:?}", e),

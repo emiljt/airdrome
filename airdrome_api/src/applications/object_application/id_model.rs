@@ -9,4 +9,8 @@ impl Id {
             value: new_id.to_string(),
         })
     }
+
+    pub fn uuid(&self) -> String {
+        self.value.replace("-", "")
+    }
 }

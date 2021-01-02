@@ -104,13 +104,8 @@ pub async fn get_objects(
         None
     };
 
-    let mut db_connection = match db_pool.acquire().await {
-        Ok(connection) => connection,
-        Err(_) => return HttpResponse::ServiceUnavailable().finish(),
-    };
-
     let objects = object_application::search_objects(
-        db_connection,
+        &db_pool,
         query.name.as_deref(),
         targets,
         languages,
@@ -144,12 +139,7 @@ pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) ->
         Err(_) => return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &id)),
     };
 
-    let mut db_connection = match db_pool.acquire().await {
-        Ok(connection) => connection,
-        Err(_) => return HttpResponse::ServiceUnavailable().finish(),
-    };
-
-    match object_application::find_object(db_connection, &guid.to_string()).await {
+    match object_application::find_object(&db_pool, &guid.to_string()).await {
         Ok(object) => {
             let data = match ObjectData::try_from(object) {
                 Ok(object) => object,

@@ -1,10 +1,11 @@
 use super::object_application;
 use crate::services::events_service::Event;
+use log::{debug, error, info, warn};
 use obex::obex::Obex;
 use std::path::Path;
 use std::sync::mpsc;
 
-pub async fn sync(db_pool: sqlx::Pool<sqlx::MySql>, path: &str) {
+pub async fn sync(db_pool: &sqlx::Pool<sqlx::MySql>, path: &str) {
     let path = Path::new(path);
     let obex = Obex::new(
         "https://github.com/parallaxinc/propeller.git",
@@ -13,6 +14,7 @@ pub async fn sync(db_pool: sqlx::Pool<sqlx::MySql>, path: &str) {
             .expect("Unable able to convert string to path"),
     )
     .expect("Unable create obex");
+    let obex_version = obex.version();
 
     for object in &obex.official_categories {}
 
@@ -39,14 +41,13 @@ pub async fn sync(db_pool: sqlx::Pool<sqlx::MySql>, path: &str) {
     // }
 
     'new_objects: for object in &obex.community_objects {
-        let mut db_connection = db_pool
-            .acquire()
-            .await
-            .expect("Unable to connect to database");
+        info!("Processing object {}", &object.name);
+
+        let object_path = Path::new(&object.path);
 
         // Check if object already exists in database
         let existing_objects = object_application::search_objects(
-            db_connection,
+            &db_pool,
             Some(&object.name),
             None,
             None,
@@ -57,33 +58,48 @@ pub async fn sync(db_pool: sqlx::Pool<sqlx::MySql>, path: &str) {
         )
         .await;
 
-        let mut existing_object = None::<object_application::Object>;
+        // let mut existing_object = None::<object_application::Object>;
 
         if existing_objects.len() > 0 {
+            info!("Found {} matching objects", existing_objects.len());
+
             for duplicate in existing_objects {
                 if duplicate.name == object.name {
-                    println!("Found existing object, skipping: {}", object.name);
+                    info!("Found existing object, updating {}", object.name);
+                    match object_application::update_object(
+                        &db_pool,
+                        &duplicate.id,
+                        "",
+                        Vec::new(),
+                        Vec::new(),
+                        object_path,
+                        None,
+                        Some(&obex_version),
+                    )
+                    .await
+                    {
+                        Ok(_) => info!("Updated {}", &object.name),
+                        Err(e) => error!("{}", e),
+                    }
                     continue 'new_objects;
                 }
             }
         }
 
-        let mut db_connection = db_pool
-            .acquire()
-            .await
-            .expect("Unable to connect to database");
-
         match object_application::add_new_object(
-            db_connection,
+            &db_pool,
             &object.name,
             "",
             Vec::new(),
             Vec::new(),
+            object_path,
+            None,
+            Some(&obex_version),
         )
         .await
         {
-            Ok(o) => println!("Added new object from obex: {}", o.name),
-            Err(_) => (),
+            Ok(o) => info!("Added new object from obex: {}", o.name),
+            Err(e) => error!("{}", e),
         };
     }
 }

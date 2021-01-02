@@ -14,25 +14,31 @@ pub fn create_zip_file(
     let mut zip = zip::ZipWriter::new(file);
     let zip_options = zip::write::FileOptions::default();
 
-    queue.push(target.to_path_buf());
-
-    while queue.len() > 0 {
-        let current_path = queue.pop().expect("Unable to get next path");
+    loop {
+        let current_path = match queue.len() {
+            0 => target.to_path_buf(),
+            _ => queue.pop().expect("Unable to get next path"),
+        };
 
         if current_path.to_str() == target.join(name).to_str() {
             continue;
         }
 
         if std::fs::metadata(&current_path)
-            .expect("Enable to open path")
+            .expect("Unable to open path")
             .is_dir()
         {
-            zip.add_directory(
-                current_path
-                    .to_str()
-                    .expect("Unable to convert path to string"),
-                zip_options,
-            )?;
+            // let relative_path = current_path
+            //     .to_str()
+            //     .expect("Unable to convert current path to string")
+            //     .replace(
+            //         target
+            //             .to_str()
+            //             .expect("Unable to convert target path to string"),
+            //         "",
+            //     );
+
+            // zip.add_directory(relative_path, zip_options)?;
 
             for item in std::fs::read_dir(&current_path)? {
                 let item = item?;
@@ -45,12 +51,17 @@ pub fn create_zip_file(
 
             current_file.read_to_end(&mut buffer)?;
             zip.start_file(
-                current_path
+                path.file_name()
+                    .expect("Unable to get file name")
                     .to_str()
-                    .expect("Unable to convert path to string"),
+                    .expect("Unable to convert file name to string"),
                 zip_options,
             )?;
             zip.write_all(&buffer)?;
+        }
+
+        if queue.len() == 0 {
+            break;
         }
     }
 

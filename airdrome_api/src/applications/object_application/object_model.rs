@@ -3,6 +3,7 @@ use super::id_model::Id;
 use super::languages_model::Languages;
 use super::name_model::Name;
 use super::targets_model::Targets;
+use super::versions_model::Versions;
 
 #[derive(Clone)]
 pub struct Object {
@@ -11,6 +12,7 @@ pub struct Object {
     pub description: Description,
     pub languages: Languages,
     pub targets: Targets,
+    pub versions: Versions,
 }
 
 impl Object {
@@ -20,6 +22,7 @@ impl Object {
         description: Description,
         languages: Languages,
         targets: Targets,
+        versions: Versions,
     ) -> Object {
         Object {
             id,
@@ -27,6 +30,7 @@ impl Object {
             description,
             languages,
             targets,
+            versions,
         }
     }
 }

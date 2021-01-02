@@ -1,4 +1,4 @@
-use actix_web::client::Client;
+use actix_web::client::{Client, Connector};
 use actix_web::web::Bytes;
 use base64;
 use serde::{Deserialize, Serialize};
@@ -7,18 +7,20 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::time::Duration;
 
-const B2_APPLICATION_ID_KEY: &str = "B2_APPLICATION_ID";
-const B2_APPLICATION_TOKEN_KEY: &str = "B2_APPLICATION_KEY";
+const B2_APPLICATION_KEY_ID_ENV: &str = "B2_APPLICATION_KEY_ID";
+const B2_APPLICATION_TOKEN_ENV: &str = "B2_APPLICATION_TOKEN";
 const B2_API_VERSION: &str = "2";
 
 pub async fn authorize_account() -> Result<Session, &'static str> {
-    let client = Client::default();
-    let application_id = env::var(B2_APPLICATION_ID_KEY).expect("B2 application id not set");
-    let application_key = env::var(B2_APPLICATION_TOKEN_KEY).expect("B2 application key not set");
+    let client = get_web_client(None);
+    let application_id =
+        env::var(B2_APPLICATION_KEY_ID_ENV).expect("B2 application key id not set");
+    let application_key = env::var(B2_APPLICATION_TOKEN_ENV).expect("B2 application key not set");
     let auth_header_value = format!("{}:{}", application_id, application_key);
 
-    let mut response = client
+    let mut response = match client
         .get("https://api.backblazeb2.com/b2api/v2/b2_authorize_account")
         .header(
             "Authorization",
@@ -26,7 +28,14 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
         )
         .send()
         .await
-        .expect("Unable to authenticate with storage service");
+    {
+        Ok(r) => r,
+        Err(e) => {
+            println!("{}", e);
+            panic!("Unable to authenticate with storage service");
+        }
+    };
+    // .expect("Unable to authenticate with storage service");
 
     let token = response
         .json::<Session>()
@@ -40,13 +49,14 @@ pub async fn get_upload_url(
     session: Session,
     bucket_id: &str,
 ) -> Result<UploadInformation, &'static str> {
-    let client = Client::default();
+    let client = get_web_client(None);
 
     let mut response = client
         .post(format!(
             "{}/b2api/v{}/b2_get_upload_url",
             session.apiUrl, B2_API_VERSION
         ))
+        .timeout(Duration::from_secs(30))
         .header("Authorization", session.authorizationToken)
         .send_json::<UploadUrlRequest>(&UploadUrlRequest {
             bucketId: bucket_id.to_string(),
@@ -66,13 +76,14 @@ pub async fn get_file_info(
     session: Session,
     file_id: &str,
 ) -> Result<FileInformation, &'static str> {
-    let client = Client::default();
+    let client = get_web_client(None);
 
     let mut response = client
         .post(format!(
             "{}/b2api/v{}/b2_get_file_info",
             session.apiUrl, B2_API_VERSION
         ))
+        .timeout(Duration::from_secs(30))
         .header("Authorization", session.authorizationToken)
         .send_json::<FileInformationRequest>(&FileInformationRequest {
             fileId: file_id.to_string(),
@@ -94,7 +105,7 @@ pub async fn upload_file(
     file_name: Option<&str>,
     content_type: Option<&str>,
 ) -> Result<FileInformation, &'static str> {
-    let client = Client::default();
+    let client = get_web_client(Some(300));
     let file_path = Path::new(file_path);
     let mut file = File::open(file_path).expect("Unable to open file for upload");
     let file_name = file_name.unwrap_or(
@@ -116,6 +127,7 @@ pub async fn upload_file(
 
     let mut response = client
         .post(upload_info.uploadUrl)
+        .timeout(Duration::from_secs(30))
         .header("Authorization", upload_info.authorizationToken)
         .header("X-Bz-File-Name", file_name)
         .header("Content-Type", content_type)
@@ -144,6 +156,19 @@ pub async fn upload_file(
     Ok(info)
 }
 
+fn get_web_client(timeout: Option<u16>) -> Client {
+    let timeout = match timeout {
+        Some(t) => Duration::from_secs(t.into()),
+        None => Duration::from_secs(30),
+    };
+    let connector = Connector::new().timeout(Duration::from_secs(10)).finish();
+
+    Client::build()
+        .connector(connector)
+        .timeout(timeout)
+        .finish()
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Session {
     accountId: String,
@@ -161,7 +186,7 @@ pub struct FileInformation {
     action: FileAction,
     bucketId: String,
     contentLength: i32,
-    contentSha1: String,
+    pub contentSha1: String,
     contentMd5: Option<String>,
     contentType: String,
     fileId: String,
