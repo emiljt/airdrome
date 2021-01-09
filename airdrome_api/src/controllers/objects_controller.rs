@@ -191,6 +191,7 @@ impl TryFrom<object_application::Object> for ObjectData {
     fn try_from(object: object_application::Object) -> Result<Self, Self::Error> {
         let mut targets = Vec::new();
         let mut languages = Vec::new();
+        let mut versions = Vec::new();
 
         for target in object.targets {
             targets.push(Target::into(Target::try_from(target)?));
@@ -198,6 +199,10 @@ impl TryFrom<object_application::Object> for ObjectData {
 
         for language in object.languages {
             languages.push(Language::into(Language::try_from(language)?));
+        }
+
+        for version in object.versions {
+            versions.push(Version::try_from(version)?);
         }
 
         Ok(ObjectData {
@@ -208,7 +213,7 @@ impl TryFrom<object_application::Object> for ObjectData {
             website: "".to_string(),
             documentation: "".to_string(),
             authors: Vec::new(),
-            versions: Vec::new(),
+            versions: versions,
             targets: targets,
             languages: languages,
             stats: Vec::new(),
@@ -227,7 +232,17 @@ pub struct Author {
 #[derive(Serialize)]
 pub struct Version {
     number: String,
-    created: String,
+    // created: String,
+}
+
+impl TryFrom<object_application::Version> for Version {
+    type Error = &'static str;
+
+    fn try_from(item: object_application::Version) -> Result<Self, Self::Error> {
+        Ok(Version {
+            number: item.number,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
