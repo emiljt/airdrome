@@ -30,12 +30,8 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
         .await
     {
         Ok(r) => r,
-        Err(e) => {
-            println!("{}", e);
-            panic!("Unable to authenticate with storage service");
-        }
+        Err(e) => panic!("Unable to authorize storage service"),
     };
-    // .expect("Unable to authenticate with storage service");
 
     let token = response
         .json::<Session>()
@@ -56,7 +52,6 @@ pub async fn get_upload_url(
             "{}/b2api/v{}/b2_get_upload_url",
             session.apiUrl, B2_API_VERSION
         ))
-        .timeout(Duration::from_secs(30))
         .header("Authorization", session.authorizationToken)
         .send_json::<UploadUrlRequest>(&UploadUrlRequest {
             bucketId: bucket_id.to_string(),
@@ -83,7 +78,6 @@ pub async fn get_file_info(
             "{}/b2api/v{}/b2_get_file_info",
             session.apiUrl, B2_API_VERSION
         ))
-        .timeout(Duration::from_secs(30))
         .header("Authorization", session.authorizationToken)
         .send_json::<FileInformationRequest>(&FileInformationRequest {
             fileId: file_id.to_string(),
@@ -127,7 +121,6 @@ pub async fn upload_file(
 
     let mut response = client
         .post(upload_info.uploadUrl)
-        .timeout(Duration::from_secs(30))
         .header("Authorization", upload_info.authorizationToken)
         .header("X-Bz-File-Name", file_name)
         .header("Content-Type", content_type)
@@ -161,7 +154,7 @@ fn get_web_client(timeout: Option<u16>) -> Client {
         Some(t) => Duration::from_secs(t.into()),
         None => Duration::from_secs(30),
     };
-    let connector = Connector::new().timeout(Duration::from_secs(10)).finish();
+    let connector = Connector::new().timeout(Duration::from_secs(20)).finish();
 
     Client::build()
         .connector(connector)

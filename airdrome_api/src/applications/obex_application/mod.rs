@@ -65,7 +65,11 @@ pub async fn sync(db_pool: &sqlx::Pool<sqlx::MySql>, path: &str) {
 
             for duplicate in existing_objects {
                 if duplicate.name == object.name {
-                    info!("Found existing object, updating {}", object.name);
+                    info!(
+                        "Found existing object, attempting to update {}",
+                        object.name
+                    );
+
                     match object_application::update_object(
                         &db_pool,
                         &duplicate.id,
@@ -82,8 +86,12 @@ pub async fn sync(db_pool: &sqlx::Pool<sqlx::MySql>, path: &str) {
                         Err(e) => error!("{}", e),
                     }
                     continue 'new_objects;
+                } else {
+                    info!("{} didn't match", duplicate.name);
                 }
             }
+
+            warn!("None of the existing objects matched");
         }
 
         match object_application::add_new_object(

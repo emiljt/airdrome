@@ -42,14 +42,22 @@ pub async fn add_new_object(
     initial_version_number: Option<&str>,
     initial_version_commit: Option<&str>,
 ) -> Result<Object, &'static str> {
-    let object_file = compress_object(path)
+    // Because the modified timestamp on files effects the hash of the zip file,
+    // we have to pass in what will become the version.created_timestamp so that
+    // it can be used to creating the zip file as well as in the hash comparison
+    // of new zip files
+    let created_timestamp =
+        timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
+
+    let object_file = compress_object(path, Some(&created_timestamp.value))
         .await
-        .expect("Unable to create compress object file");
+        .expect("Unable to create compressed object file");
 
     let initial_version = versions_factory::create_version(
         initial_version_number,
         initial_version_commit.unwrap_or(""),
         &object_file.zip_hash,
+        Some(&created_timestamp.value),
     )?;
 
     let new_object = object_factory::create_object(
@@ -60,12 +68,12 @@ pub async fn add_new_object(
         vec![initial_version.clone()],
     )?;
 
-    upload_object(
-        &object_file,
-        &new_object.id.value,
-        &initial_version.id.value,
-    )
-    .await?;
+    // upload_object(
+    //     &object_file,
+    //     &new_object.id.value,
+    //     &initial_version.id.value,
+    // )
+    // .await?;
 
     object_repository::save_object(db_pool, &new_object).await?;
 
@@ -90,11 +98,23 @@ pub async fn update_object(
             Err(_) => return Err("Unable to load existing object"),
         };
 
-    let new_object_file = compress_object(path)
-        .await
-        .expect("Unable to create compress object file");
+    // Because the modified timestamp on files effects the hash of the zip file,
+    // we need to use the same modified timestamp as the existing version so
+    // that the zip hash comparison works
+    let comparison_object_file = compress_object(
+        path,
+        Some(&object.versions.latest().created_timestamp.value),
+    )
+    .await
+    .expect("Unable to create compress object file");
 
-    if object.versions.latest().zip_hash.value == new_object_file.zip_hash {
+    info!(
+        "Latest version hash: {}, new version hash: {}",
+        object.versions.latest().zip_hash.value,
+        comparison_object_file.zip_hash
+    );
+
+    if object.versions.latest().zip_hash.value == comparison_object_file.zip_hash {
         info!("Object zip up to date");
 
         let new_object = object_factory::create_object(
@@ -106,14 +126,27 @@ pub async fn update_object(
         )?;
 
         object_repository::save_object(db_pool, &new_object).await?;
+
         Ok(Object::from_object_model(new_object))
     } else {
         info!("Found new version of object");
+
+        // Because the modified timestamp on files effects the hash of the zip file,
+        // we have to pass in what will become the version.created_timestamp so that
+        // it can be used to creating the zip file as well as in the hash comparison
+        // of new zip files
+        let created_timestamp =
+            timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
+
+        let new_object_file = compress_object(path, Some(&created_timestamp.value))
+            .await
+            .expect("Unable to create compress object file");
 
         let new_version = versions_factory::create_version(
             new_version_number,
             new_version_commit.unwrap_or(""),
             &new_object_file.zip_hash,
+            Some(&created_timestamp.value),
         )?;
 
         let mut new_versions = object.versions.all.clone();
@@ -174,11 +207,17 @@ pub async fn search_objects(
 
             results
         }
-        Err(e) => panic!("{:?}", e),
+        Err(e) => {
+            error!("Error searching objects: {}", e);
+            Vec::new()
+        }
     }
 }
 
-async fn compress_object(path: &Path) -> Result<CompressedObject, &'static str> {
+async fn compress_object(
+    path: &Path,
+    modified_timestamp: Option<&str>,
+) -> Result<CompressedObject, &'static str> {
     let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
     let objects_destination = Path::new(&objects_path);
     let object_zip_filename =
@@ -196,6 +235,8 @@ async fn compress_object(path: &Path) -> Result<CompressedObject, &'static str> 
         path,
         objects_destination,
         &format!("{}.zip", object_zip_filename.value),
+        modified_timestamp,
+        // Some("2020-10-31T23:59:00"),
     ) {
         Ok(f) => f,
         Err(e) => {
@@ -216,12 +257,17 @@ async fn compress_object(path: &Path) -> Result<CompressedObject, &'static str> 
 
     let zip_hash = hasher.finalize();
 
+    let mut hash = String::new();
+    for i in zip_hash.iter() {
+        hash.push_str(&format!("{:02x?}", i));
+    }
+
     Ok(CompressedObject {
         zip_path: version_zip_path
             .to_str()
             .expect("Unable to convert zip path to string")
             .to_string(),
-        zip_hash: format!("{:?}", zip_hash),
+        zip_hash: hash,
     })
 }
 

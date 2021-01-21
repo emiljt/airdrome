@@ -12,12 +12,13 @@ pub fn create_version(
     number: Option<&str>,
     commit: &str,
     zip_hash: &str,
+    created_timestamp: Option<&str>,
 ) -> Result<Version, &'static str> {
     let new_id = id_factory::create_id(None)?;
     let new_version_number = version_number_factory::create_version_number(number.unwrap_or(""))?;
     let new_commit = hash_factory::create_hash(commit)?;
     let new_zip_hash = hash_factory::create_hash(zip_hash)?;
-    let new_created_timestamp = timestamp_factory::create_timestamp(None)?;
+    let new_created_timestamp = timestamp_factory::create_timestamp(created_timestamp)?;
 
     Ok(Version::new(
         new_id,
