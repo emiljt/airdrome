@@ -231,6 +231,7 @@ pub struct Author {
 
 #[derive(Serialize)]
 pub struct Version {
+    guid: String,
     number: String,
     // created: String,
 }
@@ -240,6 +241,7 @@ impl TryFrom<object_application::Version> for Version {
 
     fn try_from(item: object_application::Version) -> Result<Self, Self::Error> {
         Ok(Version {
+            guid: item.id,
             number: item.number,
         })
     }
