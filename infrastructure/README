@@ -1,0 +1,11 @@
+# Start local environment
+podman-compose up
+
+# Stop local environment
+podman-compose down
+
+# Compile API
+- unset DATABASE_URL
+
+# Update offline SQL checks
+cargo sqlx prepare --check
