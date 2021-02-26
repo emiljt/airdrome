@@ -12,7 +12,7 @@ serde = ""
 serde_json = ""
 chrono = ""
 uuid = { features = ["v4"] }
-sqlx = { default-features = false, features = ["runtime-actix-native-tls", "macros", "mysql", "offline", "migrate"] }
+sqlx = { default-features = false, features = ["runtime-actix-native-tls", "macros", "mysql", "offline", "migrate", "chrono"] }
 obex = ""
 zip = ""
 log = ""

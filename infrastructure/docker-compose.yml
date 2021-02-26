@@ -3,33 +3,54 @@ services:
   web:
     build: ../airdrome_hud/
     ports:
-      - "3000:3000"
+      - "${WEB_PORT}:3000"
     restart: unless-stopped
   api:
     build: ../airdrome_api/
     ports:
-      - "8080:8080"
+      - "${APP_PORT}:8080"
     environment:
-      - DATABASE_URL=mysql://dev:dev@db/airdrome
+      DATABASE_URL: $DATABASE_URL
+      APP_ROOT: $APP_ROOT
+      OBEX_PATH: $OBEX_PATH
+      OBJECTS_PATH: $OBJECTS_PATH
+      B2_APPLICATION_KEY: $B2_APPLICATION_KEY
+      B2_APPLICATION_ID_KEY: $B2_APPLICATION_ID_KEY
+      B2_APPLICATION_TOKEN_KEY: $B2_APPLICATION_TOKEN_KEY
     restart: unless-stopped
     depends_on: db
+  migrations_job:
+    build: ../jobs/migrations_job/
+    environment:
+      DATABASE_URL: $DATABASE_URL
+    depends_on: db
+    command: bash -c "sleep 30 && sh run.sh"
+#  certbot_job:
+#    image: certbot/certbot
+#    volumes:
+#      - ./letsencrypt/etc/letsencrypt:/etc/letsencrypt
+#      - ./letsencrypt/var/lib/letsencrypt:/var/lib/letsencrypt
   proxy:
     image: nginx:latest
     ports:
-      - "2000:80"
+      - "${PROXY_PORT}:80"
+      - "${PROXY_PORT_ENCRYPTED}:443"
     restart: always
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/proxy.conf
+      - /etc/letsencrypt/live/airdrome.org/fullchain.pem:/etc/letsencrypt/live/airdrome.org/fullchain.pem
+      - /etc/letsencrypt/live/airdrome.org/privkey.pem:/etc/letsencrypt/live/airdrome.org/privkey.pem
   db:
     image: mysql
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:3306"
     restart: always
     environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: true
-      MYSQL_DATABASE: airdrome
-      MYSQL_USER: dev
-      MYSQL_PASSWORD: dev
+      MYSQL_RANDOM_ROOT_PASSWORD: false
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: $DB_DATABASE
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
     volumes:
       - .:/docker-entrypoint-initdb.d/:z
     networks:

@@ -16,6 +16,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
 
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
+    let obex_path = env::var("OBEX_PATH").expect("OBEX_PATH environment variable not set");
     let db_pool = sqlx::MySqlPool::connect(&db_url)
         .await
         .expect("Error creating database connection pool");
@@ -26,7 +27,7 @@ async fn main() -> std::io::Result<()> {
     //         temp_path: "/tmp/obex".to_string(),
     //     })
     //     .expect("Unable to send server started event");
-    obex_application::sync(db_pool.clone(), "/tmp/obex").await;
+    obex_application::sync(&db_pool, &obex_path).await;
 
     HttpServer::new(move || {
         App::new()
@@ -38,7 +39,14 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/objects")
                     .route("", web::get().to(objects_controller::get_objects))
-                    .route("/{id}", web::get().to(objects_controller::get_object)),
+                    .route(
+                        "/{object_id}",
+                        web::get().to(objects_controller::get_object),
+                    )
+                    .route(
+                        "/{object_id}/versions/{version_id}/{file_type}",
+                        web::get().to(objects_controller::get_object_download_link),
+                    ),
             )
             .service(
                 web::scope("/health").route("/heartbeat", web::get().to(|| HttpResponse::Ok())),

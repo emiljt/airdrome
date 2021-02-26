@@ -8,12 +8,37 @@
   export let authors = [
     { name: "Unknown", email: "Unknown", website: "Unknown" },
   ];
-  export let versions = [{ number: "Unknown", created: "Unknown" }];
+  export let versions = [
+    { guid: "Unknown", number: "Unknown", created: "Unknown" },
+  ];
   export let targets = ["Unknown"];
   export let languages = ["Unknown"];
   export let stats = [];
   export let categories = [];
 </script>
+
+<object-card>
+  <span> <span id="name">{name}</span> <span id="version">v -</span> </span>
+
+  <span>
+    <span>Total Downloads: -</span>
+    <span>Average Downloads: -</span>
+    <span>Updated: -</span>
+  </span>
+
+  <ul>
+    {#each versions as version}
+      <li>
+        <a
+          href="https://api.airdrome.org/objects/{guid}/versions/{version.guid}/zip"
+          >Latest</a
+        >
+      </li>
+    {/each}
+  </ul>
+
+  <p>{readme}</p>
+</object-card>
 
 <style>
   object-card {
@@ -53,15 +78,3 @@
     }
   }
 </style>
-
-<object-card>
-  <span> <span id="name">{name}</span> <span id="version">v -</span> </span>
-
-  <span>
-    <span>Total Downloads: -</span>
-    <span>Average Downloads: -</span>
-    <span>Updated: -</span>
-  </span>
-
-  <p>{readme}</p>
-</object-card>

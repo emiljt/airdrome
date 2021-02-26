@@ -1,5 +1,7 @@
 mod description_factory;
 mod description_model;
+mod hash_factory;
+mod hash_model;
 mod id_factory;
 mod id_model;
 mod languages_factory;
@@ -11,34 +13,182 @@ mod object_model;
 mod object_repository;
 mod targets_factory;
 mod targets_model;
+mod timestamp_factory;
+mod timestamp_model;
+mod version_number_factory;
+mod version_number_model;
+mod versions_factory;
+mod versions_model;
+mod versions_repository;
 
+use crate::services::files_service;
+use crate::services::storage_service;
+use log::{debug, error, info, warn};
+use sha1::{Digest, Sha1};
 use std::convert::From;
+use std::env;
+use std::fs::{create_dir_all, File};
+use std::io::Read;
+use std::path::Path;
 
 pub async fn add_new_object(
-    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
     name: &str,
     description: &str,
     languages: Vec<&str>,
     targets: Vec<&str>,
+    path: &Path,
+    initial_version_number: Option<&str>,
+    initial_version_commit: Option<&str>,
 ) -> Result<Object, &'static str> {
-    let new_object = object_factory::create_object(name, description, languages, targets)?;
-    object_repository::save_object(db_connection, &new_object).await?;
+    // Because the modified timestamp on files effects the hash of the zip file,
+    // we have to pass in what will become the version.created_timestamp so that
+    // it can be used to creating the zip file as well as in the hash comparison
+    // of new zip files
+    let created_timestamp =
+        timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
+
+    let object_file = compress_object(path, Some(&created_timestamp.value))
+        .await
+        .expect("Unable to create compressed object file");
+
+    let initial_version = versions_factory::create_version(
+        initial_version_number,
+        initial_version_commit.unwrap_or(""),
+        &object_file.zip_hash,
+        Some(&created_timestamp.value),
+    )?;
+
+    let new_object = object_factory::create_object(
+        name,
+        description,
+        languages,
+        targets,
+        vec![initial_version.clone()],
+    )?;
+
+    upload_object(
+        &object_file,
+        &new_object.id.value,
+        &initial_version.id.value,
+    )
+    .await?;
+
+    object_repository::save_object(db_pool, &new_object).await?;
 
     Ok(Object::from_object_model(new_object))
 }
 
+pub async fn update_object(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    id: &str,
+    description: &str,
+    languages: Vec<&str>,
+    targets: Vec<&str>,
+    path: &Path,
+    new_version_number: Option<&str>,
+    new_version_commit: Option<&str>,
+) -> Result<Object, &'static str> {
+    let object =
+        match object_repository::read_object(db_pool, &id_factory::create_id(Some(&id)).expect(""))
+            .await
+        {
+            Ok(o) => o,
+            Err(_) => return Err("Unable to load existing object"),
+        };
+
+    // Because the modified timestamp on files effects the hash of the zip file,
+    // we need to use the same modified timestamp as the existing version so
+    // that the zip hash comparison works
+    let comparison_object_file = compress_object(
+        path,
+        Some(&object.versions.latest().created_timestamp.value),
+    )
+    .await
+    .expect("Unable to create compress object file");
+
+    info!(
+        "Latest version hash: {}, new version hash: {}",
+        object.versions.latest().zip_hash.value,
+        comparison_object_file.zip_hash
+    );
+
+    if object.versions.latest().zip_hash.value == comparison_object_file.zip_hash {
+        info!("Object zip up to date");
+
+        let new_object = object_factory::create_object(
+            &object.name.value,
+            description,
+            languages.clone(),
+            targets.clone(),
+            object.versions.all.clone(),
+        )?;
+
+        object_repository::save_object(db_pool, &new_object).await?;
+
+        Ok(Object::from_object_model(new_object))
+    } else {
+        info!("Found new version of object");
+
+        // Because the modified timestamp on files effects the hash of the zip file,
+        // we have to pass in what will become the version.created_timestamp so that
+        // it can be used to creating the zip file as well as in the hash comparison
+        // of new zip files
+        let created_timestamp =
+            timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
+
+        let new_object_file = compress_object(path, Some(&created_timestamp.value))
+            .await
+            .expect("Unable to create compress object file");
+
+        let new_version = versions_factory::create_version(
+            new_version_number,
+            new_version_commit.unwrap_or(""),
+            &new_object_file.zip_hash,
+            Some(&created_timestamp.value),
+        )?;
+
+        let mut new_versions = object.versions.all.clone();
+        new_versions.push(new_version);
+
+        let new_object = object_factory::create_object(
+            &object.name.value,
+            description,
+            languages,
+            targets,
+            new_versions,
+        )?;
+
+        object_repository::save_object(db_pool, &new_object).await?;
+
+        upload_object(
+            &new_object_file,
+            &new_object.id.value,
+            &new_object.versions.latest().id.value,
+        )
+        .await?;
+
+        Ok(Object::from_object_model(new_object))
+    }
+}
+
 pub async fn find_object(
-    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
     id: &str,
 ) -> Result<Object, &'static str> {
-    match object_repository::read_object(db_connection, id).await {
+    let id = id_factory::create_id(Some(id)).expect("");
+
+    match object_repository::read_object(db_pool, &id).await {
         Ok(object) => Ok(Object::from_object_model(object)),
         Err(_) => Err("No object found"),
     }
 }
 
 pub async fn search_objects(
-    db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::MySql>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -49,7 +199,7 @@ pub async fn search_objects(
 ) -> Vec<Object> {
     let mut results = Vec::new();
 
-    match object_repository::read_objects(db_connection, name, targets, languages, keywords).await {
+    match object_repository::read_objects(db_pool, name, targets, languages, keywords).await {
         Ok(objects) => {
             for result in objects {
                 results.push(Object::from_object_model(result));
@@ -57,7 +207,140 @@ pub async fn search_objects(
 
             results
         }
-        Err(e) => panic!("{:?}", e),
+        Err(e) => {
+            error!("Error searching objects: {}", e);
+            Vec::new()
+        }
+    }
+}
+
+pub async fn find_version(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<Version, &'static str> {
+    let object_id = id_factory::create_id(Some(object_id)).expect("Invalid object Id");
+    let version_id = id_factory::create_id(Some(version_id)).expect("Invalid version Id");
+
+    // Find given object
+    let object = match object_repository::read_object(db_pool, &object_id).await {
+        Ok(o) => o,
+        Err(_) => return Err("No object found"),
+    };
+
+    // Make sure requested version exists
+    let valid_version = object
+        .versions
+        .all
+        .binary_search_by(|v| v.id.value.cmp(&version_id.value));
+
+    match valid_version {
+        Ok(i) => Ok(Version::from(&object.versions.all[i])),
+        Err(_) => Err("No matching version found"),
+    }
+}
+
+async fn compress_object(
+    path: &Path,
+    modified_timestamp: Option<&str>,
+) -> Result<CompressedObject, &'static str> {
+    let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
+    let objects_destination = Path::new(&objects_path);
+    let object_zip_filename =
+        id_factory::create_id(None).expect("Unable to create filename for object zip file");
+
+    match create_dir_all(objects_destination) {
+        Ok(_) => (),
+        Err(e) => {
+            println!("{}", e);
+            return Err("Unable to create objects directory");
+        }
+    }
+
+    let version_zip_path = match files_service::create_zip_file(
+        path,
+        objects_destination,
+        &format!("{}.zip", object_zip_filename.value),
+        modified_timestamp,
+        // Some("2020-10-31T23:59:00"),
+    ) {
+        Ok(f) => f,
+        Err(e) => {
+            error!("{}", e);
+            return Err("Unable to create zip file");
+        }
+    };
+
+    let mut zip_file =
+        File::open(version_zip_path.as_path()).expect("Unable to open file for upload");
+    let mut hasher = Sha1::new();
+    let mut file_buffer = Vec::new();
+
+    zip_file
+        .read_to_end(&mut file_buffer)
+        .expect("Unable to read file for hashing");
+    hasher.update(&file_buffer);
+
+    let zip_hash = hasher.finalize();
+
+    let mut hash = String::new();
+    for i in zip_hash.iter() {
+        hash.push_str(&format!("{:02x?}", i));
+    }
+
+    Ok(CompressedObject {
+        zip_path: version_zip_path
+            .to_str()
+            .expect("Unable to convert zip path to string")
+            .to_string(),
+        zip_hash: hash,
+    })
+}
+
+async fn upload_object(
+    target: &CompressedObject,
+    object_id: &str,
+    version_id: &str,
+) -> Result<(), &'static str> {
+    let bucket_id = env::var("B2_BUCKET_ID").expect("B2_BUCKET_ID environment variable not set");
+    let storage_session = storage_service::authorize_account().await?;
+    let upload_url = storage_service::get_upload_url(storage_session, &bucket_id).await?;
+
+    let upload = storage_service::upload_file(
+        upload_url,
+        &target.zip_path,
+        Some(&format!("objects/{}/{}.zip", object_id, version_id)),
+        None,
+    )
+    .await?;
+
+    if upload.contentSha1 != target.zip_hash {
+        return Err("Version zip hash didn't match the file upload hash");
+    }
+
+    Ok(())
+}
+
+pub async fn download_object(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<DownloadUri, &'static str> {
+    let bucket_name =
+        env::var("B2_BUCKET_NAME").expect("B2_BUCKET_NAME environment variable not set");
+    let version = match find_version(db_pool, object_id, version_id).await {
+        Ok(v) => v,
+        Err(_) => return Err("Unable to find version"),
+    };
+
+    match storage_service::authorize_account().await {
+        Ok(session) => Ok(DownloadUri {
+            url: format!(
+                "{}/file/{}/objects/{}/{}.zip",
+                session.downloadUrl, bucket_name, object_id, version.id
+            ),
+        }),
+        Err(_) => return Err("Unable to get download URL"),
     }
 }
 
@@ -66,12 +349,14 @@ pub struct Object {
     pub name: String,
     pub targets: Vec<Target>,
     pub languages: Vec<Language>,
+    pub versions: Vec<Version>,
 }
 
 impl Object {
     fn from_object_model(object_model: object_model::Object) -> Object {
         let mut targets: Vec<Target> = Vec::new();
         let mut languages: Vec<Language> = Vec::new();
+        let mut versions: Vec<Version> = Vec::new();
 
         for target in object_model.targets.value {
             targets.push(Target::from(target));
@@ -81,11 +366,16 @@ impl Object {
             languages.push(Language::from(language));
         }
 
+        for version in object_model.versions.all {
+            versions.push(Version::from(&version));
+        }
+
         Object {
             id: object_model.id.value,
             name: object_model.name.value,
             targets: targets,
             languages: languages,
+            versions: versions,
         }
     }
 }
@@ -148,6 +438,33 @@ impl From<languages_model::Language> for Language {
             languages_model::Language::Python => Language::Python,
         }
     }
+}
+
+pub struct Version {
+    pub id: String,
+    pub number: String,
+    pub commit: String,
+    pub created_timestamp: String,
+}
+
+impl From<&versions_model::Version> for Version {
+    fn from(item: &versions_model::Version) -> Version {
+        Version {
+            id: item.id.value.clone(),
+            number: item.number.value.clone(),
+            commit: item.commit.value.clone(),
+            created_timestamp: item.created_timestamp.value.clone(),
+        }
+    }
+}
+
+struct CompressedObject {
+    zip_path: String,
+    zip_hash: String,
+}
+
+pub struct DownloadUri {
+    pub url: String,
 }
 
 #[cfg(test)]
