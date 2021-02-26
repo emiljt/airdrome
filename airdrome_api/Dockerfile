@@ -13,9 +13,15 @@ RUN cargo build --release
 # Clean up
 RUN rm src/*rs
 # Add app source files
-ADD . ./
+ADD ./src ./src
+ADD ./migrations ./migrations
+ADD ./Cargo.lock ./Cargo.lock
+ADD ./Cargo.toml ./Cargo.toml
+ADD ./sqlx-data.json ./sqlx-data.json
 # Clean up build from dependencies
 RUN rm ./target/release/deps/airdrome_api*
+# Unset the database URL for offline query verification
+RUN unset DATABASE_URL
 # Build app binary
 RUN cargo build --release
 

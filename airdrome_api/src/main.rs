@@ -39,7 +39,14 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/objects")
                     .route("", web::get().to(objects_controller::get_objects))
-                    .route("/{id}", web::get().to(objects_controller::get_object)),
+                    .route(
+                        "/{object_id}",
+                        web::get().to(objects_controller::get_object),
+                    )
+                    .route(
+                        "/{object_id}/versions/{version_id}/{file_type}",
+                        web::get().to(objects_controller::get_object_download_link),
+                    ),
             )
             .service(
                 web::scope("/health").route("/heartbeat", web::get().to(|| HttpResponse::Ok())),

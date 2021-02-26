@@ -168,7 +168,7 @@ pub struct Session {
     authorizationToken: String,
     allowed: TokenPermissions,
     apiUrl: String,
-    downloadUrl: String,
+    pub downloadUrl: String,
     recommendedPartSize: i32,
     absoluteMinimumPartSize: i32,
 }

@@ -68,12 +68,12 @@ pub async fn add_new_object(
         vec![initial_version.clone()],
     )?;
 
-    // upload_object(
-    //     &object_file,
-    //     &new_object.id.value,
-    //     &initial_version.id.value,
-    // )
-    // .await?;
+    upload_object(
+        &object_file,
+        &new_object.id.value,
+        &initial_version.id.value,
+    )
+    .await?;
 
     object_repository::save_object(db_pool, &new_object).await?;
 
@@ -214,6 +214,32 @@ pub async fn search_objects(
     }
 }
 
+pub async fn find_version(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<Version, &'static str> {
+    let object_id = id_factory::create_id(Some(object_id)).expect("Invalid object Id");
+    let version_id = id_factory::create_id(Some(version_id)).expect("Invalid version Id");
+
+    // Find given object
+    let object = match object_repository::read_object(db_pool, &object_id).await {
+        Ok(o) => o,
+        Err(_) => return Err("No object found"),
+    };
+
+    // Make sure requested version exists
+    let valid_version = object
+        .versions
+        .all
+        .binary_search_by(|v| v.id.value.cmp(&version_id.value));
+
+    match valid_version {
+        Ok(i) => Ok(Version::from(&object.versions.all[i])),
+        Err(_) => Err("No matching version found"),
+    }
+}
+
 async fn compress_object(
     path: &Path,
     modified_timestamp: Option<&str>,
@@ -295,6 +321,29 @@ async fn upload_object(
     Ok(())
 }
 
+pub async fn download_object(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<DownloadUri, &'static str> {
+    let bucket_name =
+        env::var("B2_BUCKET_NAME").expect("B2_BUCKET_NAME environment variable not set");
+    let version = match find_version(db_pool, object_id, version_id).await {
+        Ok(v) => v,
+        Err(_) => return Err("Unable to find version"),
+    };
+
+    match storage_service::authorize_account().await {
+        Ok(session) => Ok(DownloadUri {
+            url: format!(
+                "{}/file/{}/objects/{}/{}.zip",
+                session.downloadUrl, bucket_name, object_id, version.id
+            ),
+        }),
+        Err(_) => return Err("Unable to get download URL"),
+    }
+}
+
 pub struct Object {
     pub id: String,
     pub name: String,
@@ -318,7 +367,7 @@ impl Object {
         }
 
         for version in object_model.versions.all {
-            versions.push(Version::from(version));
+            versions.push(Version::from(&version));
         }
 
         Object {
@@ -398,13 +447,13 @@ pub struct Version {
     pub created_timestamp: String,
 }
 
-impl From<versions_model::Version> for Version {
-    fn from(item: versions_model::Version) -> Version {
+impl From<&versions_model::Version> for Version {
+    fn from(item: &versions_model::Version) -> Version {
         Version {
-            id: item.id.value,
-            number: item.number.value,
-            commit: item.commit.value,
-            created_timestamp: item.created_timestamp.value,
+            id: item.id.value.clone(),
+            number: item.number.value.clone(),
+            commit: item.commit.value.clone(),
+            created_timestamp: item.created_timestamp.value.clone(),
         }
     }
 }
@@ -412,6 +461,10 @@ impl From<versions_model::Version> for Version {
 struct CompressedObject {
     zip_path: String,
     zip_hash: String,
+}
+
+pub struct DownloadUri {
+    pub url: String,
 }
 
 #[cfg(test)]

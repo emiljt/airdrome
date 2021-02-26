@@ -133,10 +133,15 @@ pub async fn get_objects(
     HttpResponse::Ok().body(format!("{}", json))
 }
 
-pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) -> HttpResponse {
-    let guid: uuid::Uuid = match uuid::Uuid::parse_str(&id) {
+pub async fn get_object(
+    db_pool: web::Data<MySqlPool>,
+    object_id: web::Path<String>,
+) -> HttpResponse {
+    let guid: uuid::Uuid = match uuid::Uuid::parse_str(&object_id) {
         Ok(i) => i,
-        Err(_) => return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &id)),
+        Err(_) => {
+            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &object_id))
+        }
     };
 
     match object_application::find_object(&db_pool, &guid.to_string()).await {
@@ -153,6 +158,46 @@ pub async fn get_object(db_pool: web::Data<MySqlPool>, id: web::Path<String>) ->
 
             HttpResponse::Ok().body(format!("{}", json))
         }
+        Err(_) => HttpResponse::NotFound().finish(),
+    }
+}
+
+pub async fn get_object_download_link(
+    db_pool: web::Data<MySqlPool>,
+    params: web::Path<(String, String, String)>,
+) -> HttpResponse {
+    let object_guid: uuid::Uuid = match uuid::Uuid::parse_str(&params.0) {
+        Ok(i) => i,
+        Err(_) => {
+            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &params.0))
+        }
+    };
+
+    let version_guid: uuid::Uuid = match uuid::Uuid::parse_str(&params.1) {
+        Ok(i) => i,
+        Err(_) => {
+            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &params.1))
+        }
+    };
+
+    match FileType::try_from(&*params.2) {
+        Ok(_) => (),
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .body(format!("Invalid file type given: {}", &params.2))
+        }
+    }
+
+    match object_application::download_object(
+        &db_pool,
+        &object_guid.to_string(),
+        &version_guid.to_string(),
+    )
+    .await
+    {
+        Ok(link) => HttpResponse::TemporaryRedirect()
+            .header("Location", format!("{}", link.url))
+            .finish(),
         Err(_) => HttpResponse::NotFound().finish(),
     }
 }
@@ -346,6 +391,22 @@ impl TryFrom<object_application::Language> for Language {
             object_application::Language::Basic => Ok(Language::Basic),
             object_application::Language::Forth => Ok(Language::Forth),
             object_application::Language::Python => Ok(Language::Python),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum FileType {
+    Zip,
+}
+
+impl TryFrom<&str> for FileType {
+    type Error = &'static str;
+
+    fn try_from(item: &str) -> Result<Self, Self::Error> {
+        match item {
+            "zip" => Ok(FileType::Zip),
+            _ => Err("Not a valid file type"),
         }
     }
 }
