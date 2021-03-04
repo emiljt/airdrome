@@ -30,8 +30,9 @@
     {#each versions as version}
       <li>
         <a
-          href="https://api.airdrome.org/objects/{guid}/versions/{version.guid}/zip"
-          >Latest</a
+          href="//api.{document.location
+            .host}/objects/{guid}/versions/{version.guid}/zip"
+          download>Latest</a
         >
       </li>
     {/each}

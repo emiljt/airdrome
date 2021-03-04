@@ -5,6 +5,7 @@ use crate::applications::object_application;
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use std::convert::TryFrom;
+use std::env;
 use std::sync::mpsc;
 
 pub async fn get_objects(
@@ -130,7 +131,11 @@ pub async fn get_objects(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    HttpResponse::Ok().body(format!("{}", json))
+    let domain = env::var("DOMAIN").unwrap_or("airdrome.org".to_string());
+
+    HttpResponse::Ok()
+        .header("Access-Control-Allow-Origin", domain)
+        .body(format!("{}", json))
 }
 
 pub async fn get_object(
@@ -195,9 +200,14 @@ pub async fn get_object_download_link(
     )
     .await
     {
-        Ok(link) => HttpResponse::TemporaryRedirect()
-            .header("Location", format!("{}", link.url))
-            .finish(),
+        Ok(link) => {
+            let domain = env::var("DOMAIN").unwrap_or("airdrome.org".to_string());
+
+            HttpResponse::TemporaryRedirect()
+                .header("Access-Control-Allow-Origin", domain)
+                .header("Location", format!("{}", link.url))
+                .finish()
+        }
         Err(_) => HttpResponse::NotFound().finish(),
     }
 }

@@ -68,12 +68,12 @@ pub async fn add_new_object(
         vec![initial_version.clone()],
     )?;
 
-    upload_object(
-        &object_file,
-        &new_object.id.value,
-        &initial_version.id.value,
-    )
-    .await?;
+    // upload_object(
+    //     &object_file,
+    //     &new_object.id.value,
+    //     &initial_version.id.value,
+    // )
+    // .await?;
 
     object_repository::save_object(db_pool, &new_object).await?;
 
@@ -162,12 +162,12 @@ pub async fn update_object(
 
         object_repository::save_object(db_pool, &new_object).await?;
 
-        upload_object(
-            &new_object_file,
-            &new_object.id.value,
-            &new_object.versions.latest().id.value,
-        )
-        .await?;
+        // upload_object(
+        //     &new_object_file,
+        //     &new_object.id.value,
+        //     &new_object.versions.latest().id.value,
+        // )
+        // .await?;
 
         Ok(Object::from_object_model(new_object))
     }

@@ -1,13 +1,15 @@
 <script>
   import { onMount } from "svelte";
   import ObjectCard from "./ObjectCard.svelte";
+
   let newObjects = [];
+
   /*
    * GET /objects{?limit}{&created,updated,name,targets,languages,keywords,categories}
    */
   function searchObjects(query) {
     return new Promise((resolve, reject) => {
-      fetch(`/api/objects?${query}`)
+      fetch(`/objects?${query}`)
         .then((response) => {
           resolve(response);
         })
@@ -16,6 +18,7 @@
         });
     });
   }
+
   onMount(() => {
     // searchObjects("limit=5&order:desc=updated")
     //   .then((response) => response.json())
@@ -28,13 +31,6 @@
   });
 </script>
 
-<style>
-  new-objects {
-    display: block;
-    padding: 1em 0em 0em 0em;
-  }
-</style>
-
 <new-objects>
   <h3>New Objects</h3>
 
@@ -42,3 +38,10 @@
     <ObjectCard {...object} />
   {/each}
 </new-objects>
+
+<style>
+  new-objects {
+    display: block;
+    padding: 1em 0em 0em 0em;
+  }
+</style>
