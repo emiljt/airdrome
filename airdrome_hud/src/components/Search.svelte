@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import ObjectCard from "./ObjectCard.svelte";
+
     let results = [];
 
     /*
@@ -8,7 +9,7 @@
      */
     function searchObjects(query) {
         return new Promise((resolve, reject) => {
-            fetch(`/api/objects?${query}`)
+            fetch(`//api.${document.location.host}/objects?${query}`)
                 .then((response) => {
                     resolve(response);
                 })
@@ -17,10 +18,13 @@
                 });
         });
     }
+
     onMount(() => {
         let params = new URLSearchParams(document.location.search);
         let query = params.get("q");
+
         if (!query) return;
+
         searchObjects(`name=${query}`)
             .then((response) => response.json())
             .then((data) => {
@@ -32,12 +36,12 @@
     });
 </script>
 
-<style>
-</style>
-
 <search>
     <h1>Search Results</h1>
     {#each results as object}
         <ObjectCard {...object} />
     {/each}
 </search>
+
+<style>
+</style>

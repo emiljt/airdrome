@@ -9,7 +9,7 @@
    */
   function searchObjects(query) {
     return new Promise((resolve, reject) => {
-      fetch(`/api/objects?${query}`)
+      fetch(`api.${document.location.host}/objects?${query}`)
         .then((response) => {
           resolve(response);
         })
@@ -31,13 +31,6 @@
   });
 </script>
 
-<style>
-  updated-objects {
-    display: block;
-    padding: 1em 0em 0em 0em;
-  }
-</style>
-
 <updated-objects>
   <h3>Recently Updated</h3>
 
@@ -45,3 +38,10 @@
     <ObjectCard {...object} />
   {/each}
 </updated-objects>
+
+<style>
+  updated-objects {
+    display: block;
+    padding: 1em 0em 0em 0em;
+  }
+</style>

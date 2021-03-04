@@ -99,6 +99,8 @@ pub async fn upload_file(
     file_name: Option<&str>,
     content_type: Option<&str>,
 ) -> Result<FileInformation, &'static str> {
+    let crate_name = env!("CARGO_PKG_NAME");
+    let crate_version = env!("CARGO_PKG_VERSION");
     let client = get_web_client(Some(300));
     let file_path = Path::new(file_path);
     let mut file = File::open(file_path).expect("Unable to open file for upload");
@@ -129,14 +131,8 @@ pub async fn upload_file(
             file.metadata().expect("Unable to get file metadata").len(),
         )
         .header("X-Bz-Content-Sha1", format!("{:x}", file_hash))
-        .header(
-            "X-Bz-Info-uploadSource",
-            env::var("CARGO_PKG_NAME").expect("Unable to get cargo package name"),
-        )
-        .header(
-            "X-Bz-Info-apiVersion",
-            env::var("CARGO_PKG_VERSION").expect("Unable to get cargo package version"),
-        )
+        .header("X-Bz-Info-uploadSource", crate_name)
+        .header("X-Bz-Info-apiVersion", crate_version)
         .send_body(Bytes::from(file_buffer))
         .await
         .expect("Unable to upload file");
