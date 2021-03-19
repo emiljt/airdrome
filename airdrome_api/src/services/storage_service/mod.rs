@@ -41,6 +41,42 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
     Ok(token)
 }
 
+pub async fn get_download_authorization(
+    session: Session,
+    bucket_id: &str,
+    prefix: &str,
+    duration: u16,
+) -> Result<DownloadToken, &'static str> {
+    let client = get_web_client(None);
+
+    let mut response = client
+        .post(format!(
+            "{}/b2api/v{}/b2_get_download_authorization",
+            session.apiUrl, B2_API_VERSION
+        ))
+        .header("Authorization", session.authorizationToken)
+        .send_json::<DownloadAuthorizationRequest>(&DownloadAuthorizationRequest {
+            bucketId: bucket_id.to_string(),
+            fileNamePrefix: prefix.to_string(),
+            validDurationInSeconds: duration,
+            b2ContentDisposition: None,
+            b2ContentLanguage: None,
+            b2Expires: None,
+            b2CacheControl: None,
+            b2ContentEncoding: None,
+            b2ContentType: None,
+        })
+        .await
+        .expect("Unable to get download authorization");
+
+    let token = response
+        .json::<DownloadToken>()
+        .await
+        .expect("Unable to parse download token");
+
+    Ok(token)
+}
+
 pub async fn get_upload_url(
     session: Session,
     bucket_id: &str,
@@ -161,12 +197,19 @@ fn get_web_client(timeout: Option<u16>) -> Client {
 #[derive(Debug, Deserialize)]
 pub struct Session {
     accountId: String,
-    authorizationToken: String,
+    pub authorizationToken: String,
     allowed: TokenPermissions,
     apiUrl: String,
     pub downloadUrl: String,
     recommendedPartSize: i32,
     absoluteMinimumPartSize: i32,
+}
+
+#[derive(Deserialize)]
+pub struct DownloadToken {
+    authorizationToken: String,
+    bucketId: String,
+    fileNamePrefix: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -206,6 +249,19 @@ struct CustomFileInformation {
 }
 
 #[derive(Debug, Serialize)]
+struct DownloadAuthorizationRequest {
+    bucketId: String,
+    fileNamePrefix: String,
+    validDurationInSeconds: u16,
+    b2ContentDisposition: Option<String>,
+    b2ContentLanguage: Option<String>,
+    b2Expires: Option<String>,
+    b2CacheControl: Option<String>,
+    b2ContentEncoding: Option<String>,
+    b2ContentType: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct FileInformationRequest {
     fileId: String,
 }
@@ -234,6 +290,16 @@ mod tests {
     #[actix_rt::test]
     async fn authorization() {
         let token = authorize_account().await;
+
+        assert!(token.is_ok());
+    }
+
+    #[actix_rt::test]
+    async fn download_authorization() {
+        let session = authorize_account()
+            .await
+            .expect("Unable to authenticate with storage service");
+        let token = get_download_authorization(session, TEST_BUCKET_ID, "", 300).await;
 
         assert!(token.is_ok());
     }
