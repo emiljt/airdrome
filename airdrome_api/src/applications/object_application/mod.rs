@@ -29,7 +29,7 @@ use std::convert::From;
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub async fn add_new_object(
     // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
@@ -240,6 +240,32 @@ pub async fn find_version(
     }
 }
 
+pub async fn get_compressed_object(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<String, &'static str> {
+    let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
+    let mut version_path = PathBuf::from(objects_path);
+    let version = match find_version(db_pool, object_id, version_id).await {
+        Ok(v) => v,
+        Err(_) => return Err("Unable to find version"),
+    };
+
+    version_path.set_file_name(version_id);
+    version_path.set_extension("zip");
+
+    match version_path.exists() {
+        true => Ok(version_path
+            .to_str()
+            .expect("Unable to convert version path to string")
+            .to_string()),
+        false => Ok(download_object(object_id: &str, version_id: &str)
+            .await
+            .expect("Unable to download version")),
+    }
+}
+
 async fn compress_object(
     path: &Path,
     modified_timestamp: Option<&str>,
@@ -321,27 +347,23 @@ async fn upload_object(
     Ok(())
 }
 
-pub async fn download_object(
-    db_pool: &sqlx::Pool<sqlx::MySql>,
-    object_id: &str,
-    version_id: &str,
-) -> Result<DownloadUri, &'static str> {
+async fn download_object(object_id: &str, version_id: &str) -> Result<String, &'static str> {
+    let bucket_id = env::var("B2_BUCKET_ID").expect("B2_BUCKET_ID environment variable not set");
     let bucket_name =
         env::var("B2_BUCKET_NAME").expect("B2_BUCKET_NAME environment variable not set");
-    let version = match find_version(db_pool, object_id, version_id).await {
-        Ok(v) => v,
-        Err(_) => return Err("Unable to find version"),
-    };
+    let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
 
-    match storage_service::authorize_account().await {
-        Ok(session) => Ok(DownloadUri {
-            url: format!(
-                "{}/file/{}/objects/{}/{}.zip",
-                session.downloadUrl, bucket_name, object_id, version.id
-            ),
-        }),
-        Err(_) => return Err("Unable to get download URL"),
-    }
+    let session = storage_service::authorize_account()
+        .await
+        .expect("Unable to authenticate with storage service");
+
+    // let download_token =
+    //     storage_service::get_download_authorization(&session, &bucket_id, "objects", 300)
+    //         .await
+    //         .expect("Unable to get download authorization");
+    storage_service::download_file(session, &bucket_id, &objects_path, object_id);
+
+    Ok(format!("{}/{}", objects_path, object_id))
 }
 
 pub struct Object {
@@ -464,6 +486,7 @@ struct CompressedObject {
 }
 
 pub struct DownloadUri {
+    pub token: String,
     pub url: String,
 }
 
