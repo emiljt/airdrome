@@ -13,7 +13,7 @@ pub async fn sync(db_pool: &sqlx::Pool<sqlx::MySql>, path: &str) {
             .to_str()
             .expect("Unable able to convert string to path"),
     )
-    .expect("Unable create obex");
+    .expect("Unable to create obex");
     let obex_version = obex.version();
 
     for object in &obex.official_categories {}

@@ -5,17 +5,19 @@ authors = ["Joshua Terrasas <joshua.terrasas@studentbody.byu.edu>"]
 edition = "2018"
 
 [dependencies]
-actix-web = { version = "2.0", features=["openssl"] }
-actix-rt = ""
-openssl = ""
-serde = ""
-serde_json = ""
-chrono = ""
-uuid = { features = ["v4"] }
-sqlx = { default-features = false, features = ["runtime-actix-native-tls", "macros", "mysql", "offline", "migrate", "chrono"] }
-obex = ""
-zip = ""
-log = ""
-env_logger = ""
-base64 = ""
-sha-1 = ""
+actix-web = { version = "3", features=["openssl"] }
+actix-files = "~0.5"
+actix-rt = "~1"
+openssl = "~0.10"
+serde = "~1"
+serde_json = "~1"
+chrono = "~0.4"
+uuid = { version = "~0.8", features = ["v4"] }
+sqlx = { version = "~0.4", default-features = false, features = ["runtime-actix-native-tls", "macros", "mysql", "offline", "migrate", "chrono"] }
+obex = "*"
+zip = "~0.5"
+log = "~0.4"
+env_logger = "~0.8"
+base64 = "~0.13"
+sha-1 = "~0.9"
+regex = "1"

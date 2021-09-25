@@ -228,7 +228,7 @@ fn get_web_client(timeout: Option<u16>) -> Client {
     };
     let connector = Connector::new().timeout(Duration::from_secs(20)).finish();
 
-    Client::build()
+    Client::builder()
         .connector(connector)
         .timeout(timeout)
         .finish()
