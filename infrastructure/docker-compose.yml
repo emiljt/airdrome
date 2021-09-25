@@ -9,25 +9,33 @@ services:
     build: ../airdrome_api/
     ports:
       - "${APP_PORT}:8080"
+#    args:
+#      - APP_ROOT
+#      - APP_USER
     environment:
-      DOMAIN: $DOMAIN
-      DATABASE_URL: $DATABASE_URL
       APP_ROOT: $APP_ROOT
-      OBEX_PATH: $OBEX_PATH
-      OBJECTS_PATH: $OBJECTS_PATH
-      B2_APPLICATION_KEY: $B2_APPLICATION_KEY
+      APP_USER: $APP_USER
+#      B2_APPLICATION_KEY_NAME: $B2_APPLICATION_KEY_NAME
       B2_APPLICATION_KEY_ID: $B2_APPLICATION_KEY_ID
       B2_APPLICATION_TOKEN: $B2_APPLICATION_TOKEN
       B2_BUCKET_ID: $B2_BUCKET_ID
       B2_BUCKET_NAME: $B2_BUCKET_NAME
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db/${DB_DATABASE}
+      DOMAIN: $DOMAIN
+      OBEX_PATH: $OBEX_PATH
+      OBJECTS_PATH: $OBJECTS_PATH
+      OBJECTS_URI: $OBJECTS_URI
+      STATIC_PATH: $STATIC_PATH
     restart: unless-stopped
-    depends_on: migrations_job
+    depends_on:
+      - migrations_job
     command: bash -c "sleep 60 && ./airdrome_api"
   migrations_job:
     build: ../jobs/migrations_job/
     environment:
-      DATABASE_URL: $DATABASE_URL
-    depends_on: db
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db/${DB_DATABASE}
+    depends_on:
+      - db
     command: bash -c "sleep 30 && sh run.sh"
 #  certbot_job:
 #    image: certbot/certbot
@@ -52,12 +60,14 @@ services:
       - "${DB_PORT}:3306"
     restart: always
     environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: false
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
       MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
       MYSQL_DATABASE: $DB_DATABASE
       MYSQL_USER: $DB_USER
       MYSQL_PASSWORD: $DB_PASSWORD
     volumes:
       - .:/docker-entrypoint-initdb.d/:z
-    networks:
-      - airdrome-network
+#    networks:
+#      - airdrome-network
+#networks:
+#  airdrome-network:

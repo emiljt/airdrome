@@ -30,24 +30,35 @@ FROM fedora:latest
 # Expose server port
 EXPOSE 8080
 # User to run app
-ENV APP_USER=rust
+ARG APP_USER
 # Set directory of app
-ARG APP=/srv/airdrome_api
+ARG APP_ROOT
+# Set directory of obex
+ARG OBEX_PATH
+# Set directory of object files
+ARG OBJECTS_PATH
+# Set directory of static files
+ARG STATIC_PATH
+# Set objects directory
+ARG OBJECTS_URI
 # Update
 # RUN dnf update -y \
 # && dnf clean all
 # Create user and group to run app
 RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \
-    && mkdir -p $APP
+    && mkdir -p $APP_ROOT \
+    && mkdir -p $OBEX_PATH \
+    && mkdir -p $OBJECTS_PATH \
+    && mkdir -p $STATIC_PATH
 # Copy binary from builder
-COPY --from=builder /airdrome_api/target/release/airdrome_api $APP/airdrome_api
+COPY --from=builder /airdrome_api/target/release/airdrome_api $APP_ROOT/airdrome_api
 # Change ownership of app binary
-RUN chown -R $APP_USER:$APP_USER $APP
+RUN chown -R $APP_USER:$APP_USER $APP_ROOT
 # Set current user
 USER $APP_USER
 # Set working directory
-WORKDIR $APP
+WORKDIR $APP_ROOT
 
 # Start app
 CMD ["./airdrome_api"]

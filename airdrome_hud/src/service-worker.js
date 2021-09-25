@@ -32,19 +32,28 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    console.log("fetching heck");
-    if (event.request.method !== 'GET' || event.request.headers.has('range')) return;
+    if (event.request.method !== 'GET' || event.request.headers.has('range')) {
+      console.log('cache 1');
+      return;
+    }
 
     const url = new URL(event.request.url);
 
     // don't try to handle e.g. data: URIs
-    if (!url.protocol.startsWith('http')) return;
+    if (!url.protocol.startsWith('http')) {
+      console.log('cache 2');
+      return;
+    }
 
     // ignore dev server requests
-    if (url.hostname === self.location.hostname && url.port !== self.location.port) return;
+    if (url.hostname === self.location.hostname && url.port !== self.location.port) {
+      console.log('cache 3');
+      return;
+    }
 
     // always serve static files and bundler-generated assets from cache
     if (url.host === self.location.host && cached.has(url.pathname)) {
+	console.log('cache 4');
         event.respondWith(caches.match(event.request));
         return;
     }
@@ -54,12 +63,18 @@ self.addEventListener('fetch', event => {
     // app, but if it's right for yours then uncomment this section
     /*
     if (url.origin === self.origin && routes.find(route => route.pattern.test(url.pathname))) {
+        console.log('cache 5');
         event.respondWith(caches.match('/service-worker-index.html'));
         return;
     }
     */
 
-    if (event.request.cache === 'only-if-cached') return;
+    if (event.request.cache === 'only-if-cached') {
+      console.log('cache 6');
+      return;
+    }
+
+    console.log('cache 7');
 
     // for everything else, try the network first, falling back to
     // cache if the user is offline. (If the pages never change, you

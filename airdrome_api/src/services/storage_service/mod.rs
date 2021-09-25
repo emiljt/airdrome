@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::time::Duration;
 
@@ -37,6 +37,42 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
         .json::<Session>()
         .await
         .expect("Unable to parse token");
+
+    Ok(token)
+}
+
+pub async fn get_download_authorization(
+    session: &Session,
+    bucket_id: &str,
+    prefix: &str,
+    duration: u16,
+) -> Result<DownloadToken, &'static str> {
+    let client = get_web_client(None);
+
+    let mut response = client
+        .post(format!(
+            "{}/b2api/v{}/b2_get_download_authorization",
+            session.apiUrl, B2_API_VERSION
+        ))
+        .header("Authorization", &*session.authorizationToken)
+        .send_json::<DownloadAuthorizationRequest>(&DownloadAuthorizationRequest {
+            bucketId: bucket_id.to_string(),
+            fileNamePrefix: prefix.to_string(),
+            validDurationInSeconds: duration,
+            b2ContentDisposition: None,
+            b2ContentLanguage: None,
+            b2Expires: None,
+            b2CacheControl: None,
+            b2ContentEncoding: None,
+            b2ContentType: None,
+        })
+        .await
+        .expect("Unable to get download authorization");
+
+    let token = response
+        .json::<DownloadToken>()
+        .await
+        .expect("Unable to parse download token");
 
     Ok(token)
 }
@@ -145,6 +181,46 @@ pub async fn upload_file(
     Ok(info)
 }
 
+pub async fn download_file(
+    session: Session,
+    bucket_id: &str,
+    target_path: &str,
+    file_name: &str,
+) -> Result<(), String> {
+    let client = get_web_client(None);
+
+    let mut response = client
+        .get(format!(
+            "{}/file/{}/{}",
+            session.apiUrl,
+            bucket_id.to_string(),
+            file_name.to_string(),
+        ))
+        .header("Authorization", session.authorizationToken)
+        .send()
+        .await
+        .expect("Unable to send file download request");
+
+    if !response.status().is_success() {
+        return Err(response
+            .json::<String>()
+            .await
+            .expect("Unable to retrieve request body"));
+    }
+
+    File::create(format!("{}/{}", target_path, file_name))
+        .expect("Unable to create file")
+        .write_all(
+            &response
+                .body()
+                .await
+                .expect("Unable to retrieve response body"),
+        )
+        .expect("Unable to write file");
+
+    Ok(())
+}
+
 fn get_web_client(timeout: Option<u16>) -> Client {
     let timeout = match timeout {
         Some(t) => Duration::from_secs(t.into()),
@@ -152,7 +228,7 @@ fn get_web_client(timeout: Option<u16>) -> Client {
     };
     let connector = Connector::new().timeout(Duration::from_secs(20)).finish();
 
-    Client::build()
+    Client::builder()
         .connector(connector)
         .timeout(timeout)
         .finish()
@@ -161,12 +237,19 @@ fn get_web_client(timeout: Option<u16>) -> Client {
 #[derive(Debug, Deserialize)]
 pub struct Session {
     accountId: String,
-    authorizationToken: String,
+    pub authorizationToken: String,
     allowed: TokenPermissions,
     apiUrl: String,
     pub downloadUrl: String,
     recommendedPartSize: i32,
     absoluteMinimumPartSize: i32,
+}
+
+#[derive(Deserialize)]
+pub struct DownloadToken {
+    pub authorizationToken: String,
+    bucketId: String,
+    fileNamePrefix: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -206,6 +289,19 @@ struct CustomFileInformation {
 }
 
 #[derive(Debug, Serialize)]
+struct DownloadAuthorizationRequest {
+    bucketId: String,
+    fileNamePrefix: String,
+    validDurationInSeconds: u16,
+    b2ContentDisposition: Option<String>,
+    b2ContentLanguage: Option<String>,
+    b2Expires: Option<String>,
+    b2CacheControl: Option<String>,
+    b2ContentEncoding: Option<String>,
+    b2ContentType: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct FileInformationRequest {
     fileId: String,
 }
@@ -234,6 +330,16 @@ mod tests {
     #[actix_rt::test]
     async fn authorization() {
         let token = authorize_account().await;
+
+        assert!(token.is_ok());
+    }
+
+    #[actix_rt::test]
+    async fn download_authorization() {
+        let session = authorize_account()
+            .await
+            .expect("Unable to authenticate with storage service");
+        let token = get_download_authorization(&session, TEST_BUCKET_ID, "", 300).await;
 
         assert!(token.is_ok());
     }
@@ -272,5 +378,16 @@ mod tests {
         let info = upload_file(url, "./Cargo.toml", None, None).await;
 
         assert!(info.is_ok());
+    }
+
+    #[actix_rt::test]
+    async fn download() {
+        let session = authorize_account()
+            .await
+            .expect("Unable to authenticate with storage service");
+
+        let result = download_file(session, TEST_BUCKET_ID, "/tmp", "test").await;
+
+        assert!(result.is_ok());
     }
 }

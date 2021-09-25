@@ -1,3 +1,4 @@
+use actix_files::NamedFile;
 use actix_web::{middleware, web, App, HttpResponse, HttpServer, Responder};
 use chrono::NaiveDateTime;
 // use events_service::Event;
@@ -6,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use std::convert::TryFrom;
 use std::env;
+use std::fs::File;
 use std::sync::mpsc;
+use std::io::Read;
 
 pub async fn get_objects(
     db_pool: web::Data<MySqlPool>,
@@ -167,46 +170,58 @@ pub async fn get_object(
     }
 }
 
-pub async fn get_object_download_link(
+pub async fn get_object_version_file(
     db_pool: web::Data<MySqlPool>,
-    params: web::Path<(String, String, String)>,
+    web::Path((object_guid, version_guid, file_type)): web::Path<(String, String, String)>,
 ) -> HttpResponse {
-    let object_guid: uuid::Uuid = match uuid::Uuid::parse_str(&params.0) {
+    let object_guid: uuid::Uuid = match uuid::Uuid::parse_str(&object_guid) {
         Ok(i) => i,
         Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &params.0))
+            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &object_guid))
         }
     };
 
-    let version_guid: uuid::Uuid = match uuid::Uuid::parse_str(&params.1) {
+    let version_guid: uuid::Uuid = match uuid::Uuid::parse_str(&version_guid) {
         Ok(i) => i,
         Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &params.1))
+            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &version_guid))
         }
     };
 
-    match FileType::try_from(&*params.2) {
+    match FileType::try_from(&*file_type) {
         Ok(_) => (),
         Err(e) => {
             return HttpResponse::BadRequest()
-                .body(format!("Invalid file type given: {}", &params.2))
+                .body(format!("Invalid file type given: {}", &file_type))
         }
     }
 
-    match object_application::download_object(
+    match object_application::get_compressed_object(
         &db_pool,
         &object_guid.to_string(),
         &version_guid.to_string(),
     )
     .await
     {
-        Ok(link) => {
+        Ok(path) => {
             let domain = env::var("DOMAIN").unwrap_or("airdrome.org".to_string());
 
-            HttpResponse::TemporaryRedirect()
-                .header("Access-Control-Allow-Origin", domain)
-                .header("Location", format!("{}", link.url))
-                .finish()
+            // let data = match FileDownload::try_from(&path) {
+            //     Ok(r) => r,
+            //     Err(_) => return HttpResponse::InternalServerError().finish(),
+            // };
+
+            // let json = match serde_json::to_string(&data) {
+            //     Ok(r) => r,
+            //     Err(_) => return HttpResponse::InternalServerError().finish(),
+            // };
+
+            // let mut file = File::open(path).expect("Unable to open object file");
+            // let file = File::read(path).expect("Unable to open object file");
+            // let mut contents = String::new();
+            // file.read_to_string(&mut contents);
+            // HttpResponse::Ok().body(contents)
+            HttpResponse::TemporaryRedirect().header("Location", path).finish()
         }
         Err(_) => HttpResponse::NotFound().finish(),
     }
@@ -418,6 +433,23 @@ impl TryFrom<&str> for FileType {
             "zip" => Ok(FileType::Zip),
             _ => Err("Not a valid file type"),
         }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FileDownload {
+    url: String,
+    token: String,
+}
+
+impl TryFrom<&object_application::DownloadUri> for FileDownload {
+    type Error = &'static str;
+
+    fn try_from(item: &object_application::DownloadUri) -> Result<Self, Self::Error> {
+        Ok(FileDownload {
+            url: item.url.to_string(),
+            token: item.token.to_string(),
+        })
     }
 }
 

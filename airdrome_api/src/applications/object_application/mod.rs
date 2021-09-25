@@ -4,6 +4,8 @@ mod hash_factory;
 mod hash_model;
 mod id_factory;
 mod id_model;
+mod filename_model;
+mod filename_factory;
 mod languages_factory;
 mod languages_model;
 mod name_factory;
@@ -29,7 +31,7 @@ use std::convert::From;
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub async fn add_new_object(
     // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
@@ -42,6 +44,11 @@ pub async fn add_new_object(
     initial_version_number: Option<&str>,
     initial_version_commit: Option<&str>,
 ) -> Result<Object, &'static str> {
+    let filename = match filename_factory::create_filename(name, initial_version_number) {
+        Ok(f) => f,
+        Err(_) => return Err("Unable to create filename"),
+    };
+
     // Because the modified timestamp on files effects the hash of the zip file,
     // we have to pass in what will become the version.created_timestamp so that
     // it can be used to creating the zip file as well as in the hash comparison
@@ -49,9 +56,13 @@ pub async fn add_new_object(
     let created_timestamp =
         timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
 
-    let object_file = compress_object(path, Some(&created_timestamp.value))
-        .await
-        .expect("Unable to create compressed object file");
+    let object_file = match compress_object(&filename.value, path, Some(&created_timestamp.value)).await {
+        Ok(f) => f,
+        Err(e) => {
+            error!("Error creating compressed object file");
+            return Err("Unable to compress object files")
+        },
+    };
 
     let initial_version = versions_factory::create_version(
         initial_version_number,
@@ -98,10 +109,19 @@ pub async fn update_object(
             Err(_) => return Err("Unable to load existing object"),
         };
 
+    let filename = match filename_factory::create_filename(
+        &object.name.value,
+        new_version_number,
+    ) {
+        Ok(f) => f,
+        Err(_) => return Err("Unable to create filename"),
+    };
+
     // Because the modified timestamp on files effects the hash of the zip file,
     // we need to use the same modified timestamp as the existing version so
     // that the zip hash comparison works
     let comparison_object_file = compress_object(
+        &filename.value,
         path,
         Some(&object.versions.latest().created_timestamp.value),
     )
@@ -138,7 +158,7 @@ pub async fn update_object(
         let created_timestamp =
             timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
 
-        let new_object_file = compress_object(path, Some(&created_timestamp.value))
+        let new_object_file = compress_object(&filename.value, path, Some(&created_timestamp.value))
             .await
             .expect("Unable to create compress object file");
 
@@ -240,14 +260,55 @@ pub async fn find_version(
     }
 }
 
+pub async fn get_compressed_object(
+    db_pool: &sqlx::Pool<sqlx::MySql>,
+    object_id: &str,
+    version_id: &str,
+) -> Result<String, &'static str> {
+    let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
+    let mut version_path = PathBuf::from(objects_path);
+
+    let object = match object_repository::read_object(
+            db_pool,
+            &id_factory::create_id(Some(&object_id)).expect("")
+        ).await
+    {
+            Ok(o) => o,
+            Err(_) => return Err("Unable to load existing object"),
+    };
+
+    let version = match find_version(db_pool, object_id, version_id).await {
+        Ok(v) => v,
+        Err(_) => return Err("Unable to find version"),
+    };
+
+    let filename = match filename_factory::create_filename(
+        &object.name.value,
+        Some(&version.number)
+    ) {
+        Ok(f) => f,
+        Err(_) => return Err("Unable to create filename"),
+    };
+
+    version_path.set_file_name(&filename.value);
+    version_path.set_extension("zip");
+
+    if !version_path.exists() {
+        download_object(object_id, version_id)
+            .await
+            .expect("Unable to download version");
+    }
+
+    Ok(format!("/static/objects/{}.zip", &filename.value))
+}
+
 async fn compress_object(
+    filename: &str,
     path: &Path,
     modified_timestamp: Option<&str>,
 ) -> Result<CompressedObject, &'static str> {
     let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
     let objects_destination = Path::new(&objects_path);
-    let object_zip_filename =
-        id_factory::create_id(None).expect("Unable to create filename for object zip file");
 
     match create_dir_all(objects_destination) {
         Ok(_) => (),
@@ -260,9 +321,8 @@ async fn compress_object(
     let version_zip_path = match files_service::create_zip_file(
         path,
         objects_destination,
-        &format!("{}.zip", object_zip_filename.value),
+        &format!("{}.zip", filename),
         modified_timestamp,
-        // Some("2020-10-31T23:59:00"),
     ) {
         Ok(f) => f,
         Err(e) => {
@@ -279,11 +339,13 @@ async fn compress_object(
     zip_file
         .read_to_end(&mut file_buffer)
         .expect("Unable to read file for hashing");
+
     hasher.update(&file_buffer);
 
     let zip_hash = hasher.finalize();
 
     let mut hash = String::new();
+
     for i in zip_hash.iter() {
         hash.push_str(&format!("{:02x?}", i));
     }
@@ -321,27 +383,23 @@ async fn upload_object(
     Ok(())
 }
 
-pub async fn download_object(
-    db_pool: &sqlx::Pool<sqlx::MySql>,
-    object_id: &str,
-    version_id: &str,
-) -> Result<DownloadUri, &'static str> {
+async fn download_object(object_id: &str, version_id: &str) -> Result<(), &'static str> {
+    let bucket_id = env::var("B2_BUCKET_ID").expect("B2_BUCKET_ID environment variable not set");
     let bucket_name =
         env::var("B2_BUCKET_NAME").expect("B2_BUCKET_NAME environment variable not set");
-    let version = match find_version(db_pool, object_id, version_id).await {
-        Ok(v) => v,
-        Err(_) => return Err("Unable to find version"),
-    };
+    let objects_path = env::var("OBJECTS_PATH").expect("OBJECTS_PATH environment variable not set");
 
-    match storage_service::authorize_account().await {
-        Ok(session) => Ok(DownloadUri {
-            url: format!(
-                "{}/file/{}/objects/{}/{}.zip",
-                session.downloadUrl, bucket_name, object_id, version.id
-            ),
-        }),
-        Err(_) => return Err("Unable to get download URL"),
-    }
+    let session = storage_service::authorize_account()
+        .await
+        .expect("Unable to authenticate with storage service");
+
+    // let download_token =
+    //     storage_service::get_download_authorization(&session, &bucket_id, "objects", 300)
+    //         .await
+    //         .expect("Unable to get download authorization");
+    storage_service::download_file(session, &bucket_id, &objects_path, object_id);
+
+    Ok(())
 }
 
 pub struct Object {
@@ -464,6 +522,7 @@ struct CompressedObject {
 }
 
 pub struct DownloadUri {
+    pub token: String,
     pub url: String,
 }
 
