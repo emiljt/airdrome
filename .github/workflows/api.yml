@@ -6,8 +6,8 @@ on:
       - opened                                                                                      
       - reopened                                                                                    
       - edited                                                                                      
-    paths:                                                                                          
-      - 'airdrome_api/*'                                                                                          
+        #    paths:                                                                                          
+        #- 'airdrome_api/*'                                                                                          
 jobs:
   tests:
     name: Tests
