@@ -1,0 +1,19 @@
+name: API                                                                                           
+                                                                                                     
+on:                                                                                                 
+  pull_request:                                                                                     
+    types:                                                                                          
+      - opened                                                                                      
+      - reopened                                                                                    
+      - edited                                                                                      
+    paths:                                                                                          
+      - 'airdrome_api/*'                                                                                          
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cargo tests
+        run: cargo test --verbose
+
