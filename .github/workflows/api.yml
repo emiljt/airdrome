@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Cargo tests
+      - name: Change to API root directory
+        run: cd airdrome_api
+      - name: Run Cargo tests
         run: cargo test --verbose
 
