@@ -2,12 +2,8 @@ name: API
                                                                                                      
 on:                                                                                                 
   pull_request:                                                                                     
-    #types:                                                                                          
-      #      - opened                                                                                      
-      #- reopened                                                                                    
-      #- edited                                                                                      
-        #    paths:                                                                                          
-        #- 'airdrome_api/*'                                                                                          
+    paths:                                                                                          
+      - 'airdrome_api/*'                                                                                          
 jobs:
   tests:
     name: Tests
