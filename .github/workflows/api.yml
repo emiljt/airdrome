@@ -5,7 +5,7 @@ on:
     paths:                                                                                          
       - 'airdrome_api/*'                                                                                          
   push:                                                                                     
-    branches: master
+    #branches: master
     paths:                                                                                          
       - 'airdrome_api/*'                                                                                          
 jobs:
