@@ -9,16 +9,26 @@ on:
     paths:                                                                                          
       - 'airdrome_api/*'                                                                                          
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cargo build
+        run: cargo build --verbose
+        working-directory: ./airdrome_api
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    needs: build
     env:
       B2_APPLICATION_KEY_NAME: api-test-key
       B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
       B2_APPLICATION_TOKEN: ${{ secrets.B2_APPLICATION_TOKEN }}
     steps:
       - uses: actions/checkout@v2
-      - name: Run Cargo tests
+      - name: Cargo tests
         run: cargo test --verbose
         working-directory: ./airdrome_api
 
