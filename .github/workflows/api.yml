@@ -18,6 +18,15 @@ jobs:
       - name: Cargo build
         run: cargo build --verbose
         working-directory: ./airdrome_api
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
   tests:
     name: Tests
     runs-on: ubuntu-latest
