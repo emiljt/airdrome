@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Cargo build
-        run: cargo build --verbose
+        run: cargo build
         working-directory: ./airdrome_api
       - uses: actions/upload-artifact@v2
         with:
@@ -41,6 +41,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: cargo-cache
+          path: ./airdrome_api
       - name: Cargo build
         run: cargo build
         working-directory: ./airdrome_api
