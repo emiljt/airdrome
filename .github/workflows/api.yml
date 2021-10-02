@@ -4,10 +4,10 @@ on:
   pull_request:                                                                                     
     paths:                                                                                          
       - 'airdrome_api/*'                                                                                          
-  push:                                                                                     
+        #push:                                                                                     
     #branches: master
-    paths:                                                                                          
-      - 'airdrome_api/*'                                                                                          
+    #paths:                                                                                          
+    #- 'airdrome_api/*'                                                                                          
 jobs:
   build:
     name: Build
