@@ -1,0 +1,20 @@
+name: API                                                                                           
+                                                                                                     
+on:                                                                                                 
+  pull_request:                                                                                     
+    paths:                                                                                          
+      - 'airdrome_api/*'                                                                                          
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    env:
+      B2_APPLICATION_KEY_NAME: api-test-key
+      B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+      B2_APPLICATION_TOKEN: ${{ secrets.B2_APPLICATION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Cargo tests
+        run: cargo test --verbose
+        working-directory: ./airdrome_api
+

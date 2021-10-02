@@ -201,6 +201,7 @@ pub async fn download_file(
         .await
         .expect("Unable to send file download request");
 
+    println!("{:?}", response);
     if !response.status().is_success() {
         return Err(response
             .json::<String>()
@@ -323,6 +324,7 @@ enum FileAction {
 mod tests {
     use super::*;
 
+    const TEST_BUCKET_NAME: &str = "api-test";
     const TEST_BUCKET_ID: &str = "2cb36c59ee1dd5e87250061c";
     const TEST_FILE_ID: &str =
         "4_z2cb36c59ee1dd5e87250061c_f113a16a06639fd32_d20201119_m050453_c002_v0001149_t0012";
@@ -386,7 +388,7 @@ mod tests {
             .await
             .expect("Unable to authenticate with storage service");
 
-        let result = download_file(session, TEST_BUCKET_ID, "/tmp", "test").await;
+        let result = download_file(session, TEST_BUCKET_NAME, "/tmp", "Cargo.toml").await;
 
         assert!(result.is_ok());
     }
