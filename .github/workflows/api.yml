@@ -8,6 +8,10 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      B2_APPLICATION_KEY_NAME: api-test-key
+      B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+      B2_APPLICATION_TOKEN: ${{ secrets.B2_APPLICATION_TOKEN }}
     steps:
       - uses: actions/checkout@v2
       - name: Run Cargo tests
