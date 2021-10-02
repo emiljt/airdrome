@@ -1,16 +1,25 @@
-use regex::Regex;
 use super::filename_model::Filename;
+use regex::Regex;
 
-pub fn create_filename(object_name: &str, version_number: Option<&str>) -> Result<Filename, &'static str> {
+pub fn create_filename(
+    object_name: &str,
+    version_number: Option<&str>,
+) -> Result<Filename, &'static str> {
     // Remove some characters rather than replace them
-    let remove_regex = Regex::new(r"[\[\]]").expect("Unable to initialize regular expression for object filename");
+    let remove_regex =
+        Regex::new(r"[\[\]]").expect("Unable to initialize regular expression for object filename");
     // Replace all but safe character
-    let replace_regex = Regex::new(r"[^0-9a-zA-Z_\-]").expect("Unable to initialize regular expression for object filename");
+    let replace_regex = Regex::new(r"[^0-9a-zA-Z_\-]")
+        .expect("Unable to initialize regular expression for object filename");
 
     let file_version_number = match version_number {
         Some(v) => {
-            if v.is_empty() { "latest" } else { v }
-        },
+            if v.is_empty() {
+                "latest"
+            } else {
+                v
+            }
+        }
         None => "latest",
     };
 

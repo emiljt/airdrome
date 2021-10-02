@@ -7,8 +7,8 @@ use applications::obex_application;
 use controllers::objects_controller;
 // use event_application;
 // use events_service::Event;
-use actix_web::middleware::Logger;
 use actix_files::Files;
+use actix_web::middleware::Logger;
 use env_logger::Env;
 use std::env;
 
@@ -35,7 +35,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .wrap(middleware::DefaultHeaders::new().header("Access-Control-Allow-Origin", "api.{domain}"))
+            .wrap(
+                middleware::DefaultHeaders::new()
+                    .header("Access-Control-Allow-Origin", "api.{domain}"),
+            )
             // .wrap(middleware::DefaultHeaders::new().header("Access-Control-Allow-Origin", "*"))
             // .wrap(middleware::Compress::default())
             .data(db_pool.clone())
