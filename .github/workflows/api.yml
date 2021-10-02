@@ -8,15 +8,16 @@ on:
     #branches: master
     #paths:                                                                                          
     #- 'airdrome_api/*'                                                                                          
+
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Cargo build
-        run: cargo build --verbose
-        working-directory: ./airdrome_api
+  #build:
+  #name: Build
+  #runs-on: ubuntu-latest
+  #steps:
+  #- uses: actions/checkout@v2
+  #    - name: Cargo build
+  #      run: cargo build --verbose
+  #      working-directory: ./airdrome_api
   tests:
     name: Tests
     runs-on: ubuntu-latest
