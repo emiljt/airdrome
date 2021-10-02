@@ -31,8 +31,6 @@ jobs:
       - name: Cargo build
         run: cargo build
         working-directory: ./airdrome_api
-    steps:
-      - uses: actions/checkout@v2
       - name: Cargo test
         run: cargo test --verbose
         working-directory: ./airdrome_api
