@@ -18,15 +18,15 @@ jobs:
       - name: Cargo build
         run: cargo build --verbose
         working-directory: ./airdrome_api
-      - uses: actions/cache@v2
+      - uses: actions/upload-artifact@v2
         with:
+          name: cargo-cache
           path: |
             ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
   tests:
     name: Tests
     runs-on: ubuntu-latest
@@ -37,6 +37,10 @@ jobs:
       B2_APPLICATION_TOKEN: ${{ secrets.B2_APPLICATION_TOKEN }}
     steps:
       - uses: actions/checkout@v2
+      - name: Download cargo build results
+        uses: actions/download-artifact@v2
+        with:
+          name: cargo-cache
       - name: Cargo build
         run: cargo build
         working-directory: ./airdrome_api
