@@ -1,11 +1,11 @@
 mod description_factory;
 mod description_model;
+mod filename_factory;
+mod filename_model;
 mod hash_factory;
 mod hash_model;
 mod id_factory;
 mod id_model;
-mod filename_model;
-mod filename_factory;
 mod languages_factory;
 mod languages_model;
 mod name_factory;
@@ -56,13 +56,14 @@ pub async fn add_new_object(
     let created_timestamp =
         timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
 
-    let object_file = match compress_object(&filename.value, path, Some(&created_timestamp.value)).await {
-        Ok(f) => f,
-        Err(e) => {
-            error!("Error creating compressed object file");
-            return Err("Unable to compress object files")
-        },
-    };
+    let object_file =
+        match compress_object(&filename.value, path, Some(&created_timestamp.value)).await {
+            Ok(f) => f,
+            Err(e) => {
+                error!("Error creating compressed object file");
+                return Err("Unable to compress object files");
+            }
+        };
 
     let initial_version = versions_factory::create_version(
         initial_version_number,
@@ -109,10 +110,7 @@ pub async fn update_object(
             Err(_) => return Err("Unable to load existing object"),
         };
 
-    let filename = match filename_factory::create_filename(
-        &object.name.value,
-        new_version_number,
-    ) {
+    let filename = match filename_factory::create_filename(&object.name.value, new_version_number) {
         Ok(f) => f,
         Err(_) => return Err("Unable to create filename"),
     };
@@ -158,9 +156,10 @@ pub async fn update_object(
         let created_timestamp =
             timestamp_factory::create_timestamp(None).expect("Unable to create created timestamp");
 
-        let new_object_file = compress_object(&filename.value, path, Some(&created_timestamp.value))
-            .await
-            .expect("Unable to create compress object file");
+        let new_object_file =
+            compress_object(&filename.value, path, Some(&created_timestamp.value))
+                .await
+                .expect("Unable to create compress object file");
 
         let new_version = versions_factory::create_version(
             new_version_number,
@@ -269,12 +268,13 @@ pub async fn get_compressed_object(
     let mut version_path = PathBuf::from(objects_path);
 
     let object = match object_repository::read_object(
-            db_pool,
-            &id_factory::create_id(Some(&object_id)).expect("")
-        ).await
+        db_pool,
+        &id_factory::create_id(Some(&object_id)).expect(""),
+    )
+    .await
     {
-            Ok(o) => o,
-            Err(_) => return Err("Unable to load existing object"),
+        Ok(o) => o,
+        Err(_) => return Err("Unable to load existing object"),
     };
 
     let version = match find_version(db_pool, object_id, version_id).await {
@@ -282,13 +282,11 @@ pub async fn get_compressed_object(
         Err(_) => return Err("Unable to find version"),
     };
 
-    let filename = match filename_factory::create_filename(
-        &object.name.value,
-        Some(&version.number)
-    ) {
-        Ok(f) => f,
-        Err(_) => return Err("Unable to create filename"),
-    };
+    let filename =
+        match filename_factory::create_filename(&object.name.value, Some(&version.number)) {
+            Ok(f) => f,
+            Err(_) => return Err("Unable to create filename"),
+        };
 
     version_path.set_file_name(&filename.value);
     version_path.set_extension("zip");

@@ -8,8 +8,8 @@ use sqlx::MySqlPool;
 use std::convert::TryFrom;
 use std::env;
 use std::fs::File;
-use std::sync::mpsc;
 use std::io::Read;
+use std::sync::mpsc;
 
 pub async fn get_objects(
     db_pool: web::Data<MySqlPool>,
@@ -184,7 +184,8 @@ pub async fn get_object_version_file(
     let version_guid: uuid::Uuid = match uuid::Uuid::parse_str(&version_guid) {
         Ok(i) => i,
         Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Invalid guid given: {}", &version_guid))
+            return HttpResponse::BadRequest()
+                .body(format!("Invalid guid given: {}", &version_guid))
         }
     };
 
@@ -221,7 +222,9 @@ pub async fn get_object_version_file(
             // let mut contents = String::new();
             // file.read_to_string(&mut contents);
             // HttpResponse::Ok().body(contents)
-            HttpResponse::TemporaryRedirect().header("Location", path).finish()
+            HttpResponse::TemporaryRedirect()
+                .header("Location", path)
+                .finish()
         }
         Err(_) => HttpResponse::NotFound().finish(),
     }
