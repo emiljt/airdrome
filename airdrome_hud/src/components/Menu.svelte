@@ -1,11 +1,11 @@
 <script>
-  import {goto} from '@sapper/app';
+  import {goto} from "@sapper/app";
 
-  export let display = 'false';
+  export let display = "false";
 
   async function navigate(e) {
-    await goto(e.target.href);
-    display = false;
+      await goto(e.target.href);
+      display = false;
   }
 </script>
 
