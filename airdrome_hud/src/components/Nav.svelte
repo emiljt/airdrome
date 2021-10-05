@@ -4,7 +4,7 @@
   let displayMenu = false;
 
   function toggleMenu() {
-    displayMenu = !displayMenu;
+      displayMenu = !displayMenu;
   }
 </script>
 

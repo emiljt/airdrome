@@ -1,15 +1,16 @@
 {
-  "name": "TODO",
-  "description": "TODO",
-  "version": "0.0.1",
+  "name": "airdrome_hud",
+  "description": "",
+  "version": "0.1.0",
   "scripts": {
+    "build": "sapper build",
     "dev": "sapper dev",
-    "build": "sapper build --legacy",
     "export": "sapper export --legacy",
+    "lint": "npm run lint:js && npm run lint:svelte",
+    "lint:js": "eslint src/**/*.js",
+    "lint:svelte": "echo -e '\\033[0;31m\n!!! WARNING: skipping lint of svelte files !!!\n\\033[0;0m'",
     "start": "node __sapper__/build",
-    "cy:run": "cypress run",
-    "cy:open": "cypress open",
-    "test": "run-p --race dev cy:run"
+    "test": "echo -e '\\033[0;31m\n!!! WARNING: no tests defined !!!\n\\033[0;0m'"
   },
   "dependencies": {
     "compression": "^1.7.1",
@@ -17,9 +18,6 @@
     "sirv": "^1.0.0"
   },
   "devDependencies": {
-    "npm-run-all": "^4.1.5",
-    "sapper": "^0.28.0",
-    "svelte": "^3.17.3",
     "@babel/core": "^7.0.0",
     "@babel/plugin-syntax-dynamic-import": "^7.0.0",
     "@babel/plugin-transform-runtime": "^7.0.0",
@@ -29,8 +27,13 @@
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-node-resolve": "^8.0.0",
     "@rollup/plugin-replace": "^2.2.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-svelte3": "^3.2.1",
+    "npm-run-all": "^4.1.5",
     "rollup": "^2.3.4",
     "rollup-plugin-svelte": "^5.0.1",
-    "rollup-plugin-terser": "^6.1.0"
+    "rollup-plugin-terser": "^6.1.0",
+    "sapper": "^0.28.0",
+    "svelte": "^3.17.3"
   }
 }

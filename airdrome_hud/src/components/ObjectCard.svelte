@@ -6,10 +6,10 @@
   export let website = "[website]";
   export let documentation = "[documentation]";
   export let authors = [
-    { name: "Unknown", email: "Unknown", website: "Unknown" },
+      { name: "Unknown", email: "Unknown", website: "Unknown" },
   ];
   export let versions = [
-    { guid: "Unknown", number: "Unknown", created: "Unknown" },
+      { guid: "Unknown", number: "Unknown", created: "Unknown" },
   ];
   export let targets = ["Unknown"];
   export let languages = ["Unknown"];

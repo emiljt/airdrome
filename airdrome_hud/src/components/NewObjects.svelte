@@ -8,26 +8,26 @@
    * GET /objects{?limit}{&created,updated,name,targets,languages,keywords,categories}
    */
   function searchObjects(query) {
-    return new Promise((resolve, reject) => {
-      fetch(`/objects?${query}`)
-        .then((response) => {
-          resolve(response);
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
+      return new Promise((resolve, reject) => {
+          fetch(`/objects?${query}`)
+              .then((response) => {
+                  resolve(response);
+              })
+              .catch((e) => {
+                  reject(e);
+              });
+      });
   }
 
   onMount(() => {
-    // searchObjects("limit=5&order:desc=updated")
-    //   .then((response) => response.json())
-    //   .then((data) => {
-    //     results = data;
-    //   })
-    //   .catch((e) => {
-    //     console.log(e);
-    //   });
+      // searchObjects("limit=5&order:desc=updated")
+      //   .then((response) => response.json())
+      //   .then((data) => {
+      //     results = data;
+      //   })
+      //   .catch((e) => {
+      //     console.log(e);
+      //   });
   });
 </script>
 
