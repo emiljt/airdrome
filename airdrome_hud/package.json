@@ -4,15 +4,13 @@
   "version": "0.1.0",
   "scripts": {
     "build": "sapper build",
-    "cy:run": "cypress run",
-    "cy:open": "cypress open",
     "dev": "sapper dev",
     "export": "sapper export --legacy",
     "lint": "npm run lint:js && npm run lint:svelte",
     "lint:js": "eslint src/**/*.js",
     "lint:svelte": "echo -e '\\033[0;31m\n!!! WARNING: skipping lint of svelte files !!!\n\\033[0;0m'",
     "start": "node __sapper__/build",
-    "test": "run-p --race dev cy:run"
+    "test": "echo -e '\\033[0;31m\n!!! WARNING: no tests defined !!!\n\\033[0;0m'"
   },
   "dependencies": {
     "compression": "^1.7.1",
