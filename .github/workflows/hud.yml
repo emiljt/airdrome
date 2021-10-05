@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+      - name: Install dependencies
+        run: npm install --dev
       - name: Build script
         run: npm run build
   tests:
@@ -38,6 +40,8 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+      - name: Install dependencies
+        run: npm install --dev
       - name: Test script
         run: npm run test
 
