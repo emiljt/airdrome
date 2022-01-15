@@ -6,7 +6,15 @@ services:
       - "${WEB_PORT}:3000"
     restart: unless-stopped
   api:
-    build: ../airdrome_api/
+    build:
+      context: ../airdrome_api/
+      args:
+        - APP_USER=$APP_USER
+        - APP_ROOT=$APP_ROOT
+        - OBEX_PATH=$OBEX_PATH
+        - OBJECTS_PATH=$OBJECTS_PATH
+        - STATIC_PATH=$STATIC_PATH
+        - OBJECTS_URI=$OBJECTS_URI
     ports:
       - "${APP_PORT}:8080"
 #    args:
