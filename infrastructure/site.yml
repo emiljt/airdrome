@@ -1,0 +1,41 @@
+---
+- name: Setup hosts
+  hosts: all
+
+  tasks:
+    - name: Add HashiCorp repository
+      become: yes
+      ansible.builtin.yum_repository:
+        name: hashicorp
+        description: "Official RPM repository for HashiCorp"
+        baseurl: "https://rpm.releases.hashicorp.com/fedora/$releasever/$basearch/stable"
+        state: present
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://rpm.releases.hashicorp.com/gpg
+    - name: Install nomad
+      become: yes
+      ansible.builtin.dnf:
+        name: nomad
+        state: present
+
+- name: Setup container hosts
+  hosts: all
+
+  tasks:
+    - name: Install podman
+      become: yes
+      ansible.builtin.dnf:
+        name: podman
+        state: present
+
+- name: Update hosts
+  hosts: all
+
+  tasks:
+    - name: Update packages
+      become: yes
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
