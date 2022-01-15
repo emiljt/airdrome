@@ -334,6 +334,7 @@ dependencies = [
  "log",
  "obex",
  "openssl",
+ "regex",
  "serde",
  "serde_json",
  "sha-1",
