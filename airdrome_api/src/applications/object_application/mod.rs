@@ -34,8 +34,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub async fn add_new_object(
-    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     name: &str,
     description: &str,
     languages: Vec<&str>,
@@ -93,7 +92,7 @@ pub async fn add_new_object(
 }
 
 pub async fn update_object(
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     id: &str,
     description: &str,
     languages: Vec<&str>,
@@ -193,8 +192,7 @@ pub async fn update_object(
 }
 
 pub async fn find_object(
-    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     id: &str,
 ) -> Result<Object, &'static str> {
     let id = id_factory::create_id(Some(id)).expect("");
@@ -206,8 +204,7 @@ pub async fn find_object(
 }
 
 pub async fn search_objects(
-    // db_connection: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -234,7 +231,7 @@ pub async fn search_objects(
 }
 
 pub async fn find_version(
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object_id: &str,
     version_id: &str,
 ) -> Result<Version, &'static str> {
@@ -260,7 +257,7 @@ pub async fn find_version(
 }
 
 pub async fn get_compressed_object(
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object_id: &str,
     version_id: &str,
 ) -> Result<String, &'static str> {

@@ -4,10 +4,10 @@ use super::object_factory;
 use super::object_model::Object;
 use super::versions_repository;
 use sqlx::{Executor, Row};
+use std::convert::TryInto;
 
 pub async fn save_object(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object: &Object,
 ) -> Result<(), &'static str> {
     let mut object_targets_values: Vec<String> = Vec::new();
@@ -76,7 +76,7 @@ pub async fn save_object(
     let object_id = match db_connection
         .execute(sqlx::query!(
             "INSERT INTO `object_application_objects`
-            (`guid`, `name`, `description`)
+            (`id`, `name`, `description`)
             VALUES (?, ?, ?);",
             object.id.uuid(),
             object.name.value,
@@ -84,7 +84,7 @@ pub async fn save_object(
         ))
         .await
     {
-        Ok(r) => r.last_insert_id(),
+        Ok(r) => r.last_insert_rowid().try_into().unwrap(),
         Err(e) => panic!("{:?}", e),
     };
 
@@ -96,8 +96,7 @@ pub async fn save_object(
 }
 
 pub async fn read_object(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     id: &Id,
 ) -> Result<Object, &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -107,9 +106,9 @@ pub async fn read_object(
 
     let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT object.id, object.guid, object.name, object.description,
-        GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
-        GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
+            "SELECT object.id, object.name, object.description,
+        GROUP_CONCAT(REPLACE(DISTINCT(target.name), '', ''), ',') AS targets,
+        GROUP_CONCAT(REPLACE(DISTINCT(language.name), '', ''), ',') AS languages
         FROM object_application_objects AS object
         LEFT JOIN object_application_object_languages AS languages
         ON object.id = languages.object_id
@@ -119,8 +118,8 @@ pub async fn read_object(
         ON object.id = targets.object_id
         LEFT JOIN object_application_targets AS target
         ON targets.target_id = target.id
-        WHERE object.guid = ?
-        GROUP BY object.guid;",
+        WHERE object.id = ?
+        GROUP BY object.id;",
             &id.uuid(),
         ))
         .await
@@ -142,7 +141,7 @@ pub async fn read_object(
             .expect("Error restoring object versions");
 
         match object_factory::restore_object(
-            row.get("guid"),
+            row.get("id"),
             row.get("name"),
             row.get("description"),
             row.get::<Option<&str>, &str>("languages")
@@ -168,8 +167,7 @@ pub async fn read_object(
 }
 
 pub async fn read_objects(
-    // db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -204,9 +202,9 @@ pub async fn read_objects(
 
     let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT object.id, object.guid, object.name, object.description
-            #GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
-            #GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
+            "SELECT object.id, object.name, object.description
+            -- GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
+            -- GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
             FROM object_application_objects AS object
             LEFT JOIN object_application_object_languages AS languages
             ON object.id = languages.object_id
@@ -216,8 +214,8 @@ pub async fn read_objects(
             ON object.id = targets.object_id
             LEFT JOIN object_application_targets AS target
             ON targets.target_id = target.id
-            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?)
-            OR MATCH(`description`) AGAINST (?));",
+            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?));
+            -- OR MATCH(`description`) AGAINST (?));",
             format!("%{}%", name),
             targets,
             languages,
@@ -238,7 +236,7 @@ pub async fn read_objects(
             .expect("Error restoring object versions");
 
         match object_factory::restore_object(
-            row.get("guid"),
+            row.get("id"),
             row.get("name"),
             row.get("description"),
             // row.get::<Option<&str>, &str>("languages")

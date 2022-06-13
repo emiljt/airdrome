@@ -5,8 +5,7 @@ use chrono::NaiveDateTime;
 use sqlx::{Executor, Row};
 
 pub async fn save_versions(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object_id: u64,
     versions: &Versions,
 ) -> Result<(), &'static str> {
@@ -19,7 +18,7 @@ pub async fn save_versions(
         match db_connection
             .execute(sqlx::query!(
                 "INSERT INTO `object_application_versions`
-                (`guid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
+                (`id`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
                 VALUES (?, ?, ?, ?, ?, ?);",
                 &version.id.uuid(),
                 version.number.value,
@@ -42,8 +41,7 @@ pub async fn save_versions(
 }
 
 pub async fn read_versions(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object_id: u64,
 ) -> Result<Versions, &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -53,7 +51,7 @@ pub async fn read_versions(
 
     let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT guid, number, created_timestamp, commit, zip_hash
+            "SELECT `id`, `number`, `created_timestamp`, `commit`, `zip_hash`
             FROM object_application_versions AS version
             WHERE object_id = ?;",
             object_id
@@ -68,7 +66,7 @@ pub async fn read_versions(
 
     for row in rows {
         match versions_factory::restore_version(
-            row.get("guid"),
+            row.get("id"),
             row.get("number"),
             row.get("commit"),
             row.get("zip_hash"),
