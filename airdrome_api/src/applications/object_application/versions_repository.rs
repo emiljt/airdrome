@@ -6,7 +6,7 @@ use sqlx::{Executor, Row};
 
 pub async fn save_versions(
     db_pool: &sqlx::Pool<sqlx::Sqlite>,
-    object_id: u64,
+    object_id: i64,
     versions: &Versions,
 ) -> Result<(), &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -15,12 +15,14 @@ pub async fn save_versions(
     };
 
     for version in &versions.all {
+        let id = version.id.uuid();
+
         match db_connection
             .execute(sqlx::query!(
                 "INSERT INTO `object_application_versions`
                 (`id`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
                 VALUES (?, ?, ?, ?, ?, ?);",
-                &version.id.uuid(),
+                id,
                 version.number.value,
                 version.created_timestamp.value,
                 version.commit.value,
@@ -42,7 +44,7 @@ pub async fn save_versions(
 
 pub async fn read_versions(
     db_pool: &sqlx::Pool<sqlx::Sqlite>,
-    object_id: u64,
+    object_id: &Id,
 ) -> Result<Versions, &'static str> {
     let mut db_connection = match db_pool.acquire().await {
         Ok(connection) => connection,
@@ -54,7 +56,7 @@ pub async fn read_versions(
             "SELECT `id`, `number`, `created_timestamp`, `commit`, `zip_hash`
             FROM object_application_versions AS version
             WHERE object_id = ?;",
-            object_id
+            object_id.value
         ))
         .await
     {
@@ -73,9 +75,7 @@ pub async fn read_versions(
             // &NaiveDateTime::parse_from_str(row.get("created_timestamp"), "%Y-%m-%dT%H:%M:%S%z")
             // .expect("")
             // .to_string(),
-            &row.get::<NaiveDateTime, &str>("created_timestamp")
-                .format("%Y-%m-%dT%H:%M:%S")
-                .to_string(),
+            row.get("created_timestamp"),
         ) {
             Ok(version) => versions.push(version),
             Err(e) => {

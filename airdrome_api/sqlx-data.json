@@ -1,0 +1,65 @@
+{
+  "db": "SQLite",
+  "105acd81f0e25a1ef0c8ab875b471e9de612771cfc0417153452a2142e4cc999": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO `object_application_objects`\n            (`uuid`, `name`, `description`)\n            VALUES (?, ?, ?);"
+  },
+  "6cb4b466754e04195ec4442f4d227f8f68e98969bc36a0e8a7f2d6fd614edd39": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "number",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_timestamp",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "commit",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "zip_hash",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT `id`, `number`, `created_timestamp`, `commit`, `zip_hash`\n            FROM object_application_versions AS version\n            WHERE object_id = ?;"
+  },
+  "abaa367cbd7ba68031e82d65cd785c525510427e30dac1eae3755683cc05c67e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "INSERT INTO `object_application_versions`\n                (`id`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)\n                VALUES (?, ?, ?, ?, ?, ?);"
+  }
+}
