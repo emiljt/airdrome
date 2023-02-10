@@ -108,8 +108,9 @@ pub async fn read_object(
 
     // TODO make this a compiled query (see SQLX 0.6 bug)
     let mut rows = match db_connection
-        .fetch_all(sqlx::query(
-            "SELECT object.uuid AS id, object.name AS name, object.description AS description,
+        .fetch_all(
+            sqlx::query(
+                "SELECT object.uuid AS id, object.name AS name, object.description AS description,
             GROUP_CONCAT(REPLACE(DISTINCT(target.name), '', ''), ',') AS targets,
             GROUP_CONCAT(REPLACE(DISTINCT(language.name), '', ''), ',') AS languages
             FROM object_application_objects AS object
@@ -122,7 +123,8 @@ pub async fn read_object(
             LEFT JOIN object_application_targets AS target
             ON target.id = object_targets.target_id
             WHERE object.uuid = ?
-            GROUP BY object.id;")
+            GROUP BY object.id;",
+            )
             .bind(&id.uuid()),
         )
         .await
@@ -206,8 +208,9 @@ pub async fn read_objects(
 
     // TODO make this a compiled query (see SQLX 0.6 bug)
     let mut rows = match db_connection
-        .fetch_all(sqlx::query(
-            r#"SELECT object.uuid AS id, object.name AS name, object.description AS description,
+        .fetch_all(
+            sqlx::query(
+                r#"SELECT object.uuid AS id, object.name AS name, object.description AS description,
             GROUP_CONCAT(DISTINCT target.name) AS targets,
             GROUP_CONCAT(DISTINCT language.name) AS languages
             FROM object_application_objects AS object
@@ -220,18 +223,20 @@ pub async fn read_objects(
             LEFT JOIN object_application_languages AS language
             ON language.id = object_languages.language_id
             WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?))
-            GROUP BY object.id;"#
+            GROUP BY object.id;"#,
+            )
+            .bind(format!("%{}%", name))
+            .bind(targets)
+            .bind(languages),
         )
-        .bind(format!("%{}%", name))
-        .bind(targets)
-        .bind(languages))
-        .await {
-            Ok(r) => r,
-            Err(e) => {
-                println!("{:?}", e);
-                return Err("Error reading objects")
-            },
-        };
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            println!("{:?}", e);
+            return Err("Error reading objects");
+        }
+    };
 
     let mut objects: Vec<Object> = Vec::new();
 

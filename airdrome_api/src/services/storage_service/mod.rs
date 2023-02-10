@@ -1,5 +1,5 @@
-use awc::Client;
 use actix_web::web::Bytes;
+use awc::Client;
 use base64;
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
@@ -162,8 +162,8 @@ pub async fn upload_file(
         .insert_header(("Authorization", upload_info.authorizationToken))
         .insert_header(("X-Bz-File-Name", file_name))
         .insert_header(("Content-Type", content_type))
-        .insert_header(
-            ("Content-Length",
+        .insert_header((
+            "Content-Length",
             file.metadata().expect("Unable to get file metadata").len(),
         ))
         .insert_header(("X-Bz-Content-Sha1", format!("{:x}", file_hash)))
