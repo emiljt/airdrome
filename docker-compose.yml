@@ -1,0 +1,31 @@
+version: "3"
+services:
+  api:
+    build:
+      context: airdrome_api/
+    volumes:
+      - data:${DATA_PATH}
+    ports:
+      - "${API_PORT}:8000"
+    environment:
+      API_URL: $API_URL
+      DATABASE_URL: sqlite://$DATA_PATH/db/airdrome.db
+      ENVIRONMENT: dev
+      LOG_LEVEL: debug
+      RUST_BACKTRACE: $RUST_BACKTRACE
+      SQLX_OFFLINE: $SQLX_OFFLINE
+    restart: unless-stopped
+  web:
+    build:
+      context: airdrome_hud/
+    ports:
+      - "${WEB_PORT}:8080"
+    environment:
+      API_URL: $API_URL
+      NODE_ENV: $NODE_ENV
+      PORT: 8080
+    command: npm run dev
+    restart: unless-stopped
+volumes:
+  data:
+    external: true

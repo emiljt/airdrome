@@ -10,7 +10,7 @@
     },
     "query": "INSERT INTO `object_application_objects`\n            (`uuid`, `name`, `description`)\n            VALUES (?, ?, ?);"
   },
-  "6cb4b466754e04195ec4442f4d227f8f68e98969bc36a0e8a7f2d6fd614edd39": {
+  "51684a9dc3ed43d05026387ce36cd50fc254cf9a100a3ecf0b59d066f55bd451": {
     "describe": {
       "columns": [
         {
@@ -40,7 +40,7 @@
         }
       ],
       "nullable": [
-        true,
+        false,
         true,
         false,
         true,
@@ -50,9 +50,9 @@
         "Right": 1
       }
     },
-    "query": "SELECT `id`, `number`, `created_timestamp`, `commit`, `zip_hash`\n            FROM object_application_versions AS version\n            WHERE object_id = ?;"
+    "query": "SELECT `uuid` AS id, `number`, `created_timestamp`, `commit`, `zip_hash`\n            FROM object_application_versions AS version\n            WHERE object_id = ?;"
   },
-  "abaa367cbd7ba68031e82d65cd785c525510427e30dac1eae3755683cc05c67e": {
+  "f80c8646a978d46c25774e43aca6956362450dfcf90612082913bd384e2df463": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -60,6 +60,6 @@
         "Right": 6
       }
     },
-    "query": "INSERT INTO `object_application_versions`\n                (`id`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)\n                VALUES (?, ?, ?, ?, ?, ?);"
+    "query": "INSERT INTO `object_application_versions`\n                (`uuid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)\n                VALUES (?, ?, ?, ?, ?, ?);"
   }
 }

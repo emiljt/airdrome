@@ -6,7 +6,7 @@ use sqlx::{Executor, Row};
 
 pub async fn save_versions(
     db_pool: &sqlx::Pool<sqlx::Sqlite>,
-    object_id: i64,
+    object_id: &str,
     versions: &Versions,
 ) -> Result<(), &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -20,7 +20,7 @@ pub async fn save_versions(
         match db_connection
             .execute(sqlx::query!(
                 "INSERT INTO `object_application_versions`
-                (`id`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
+                (`uuid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
                 VALUES (?, ?, ?, ?, ?, ?);",
                 id,
                 version.number.value,
@@ -46,6 +46,7 @@ pub async fn read_versions(
     db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object_id: &Id,
 ) -> Result<Versions, &'static str> {
+    let object_id = object_id.uuid();
     let mut db_connection = match db_pool.acquire().await {
         Ok(connection) => connection,
         Err(_) => panic!("Unable to open db connection"),
@@ -53,10 +54,10 @@ pub async fn read_versions(
 
     let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT `id`, `number`, `created_timestamp`, `commit`, `zip_hash`
+            "SELECT `uuid` AS id, `number`, `created_timestamp`, `commit`, `zip_hash`
             FROM object_application_versions AS version
             WHERE object_id = ?;",
-            object_id.value
+            object_id
         ))
         .await
     {
