@@ -1,13 +1,13 @@
-name: API                                                                                           
-                                                                                                     
-on:                                                                                                 
-  pull_request:                                                                                     
-    paths:                                                                                          
-      - 'airdrome_api/*'                                                                                          
-  push:                                                                                     
+name: API
+
+on:
+  pull_request:
+    paths:
+      - 'airdrome_api/*'
+  push:
     branches: master
-    paths:                                                                                          
-      - 'airdrome_api/*'                                                                                          
+    paths:
+      - 'airdrome_api/*'
 defaults:
   run:
     working-directory: ./airdrome_api
@@ -36,9 +36,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     env:
-      B2_APPLICATION_KEY_NAME: api-test-key
       B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
       B2_APPLICATION_TOKEN: ${{ secrets.B2_APPLICATION_TOKEN }}
+      B2_TEST_BUCKET_NAME: "api-test"
+      B2_TEST_BUCKET_ID: ${{ secrets.B2_TEST_BUCKET_ID }}
+      B2_TEST_FILE_ID: ${{ secrets.B2_TEST_FILE_ID }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
