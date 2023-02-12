@@ -4,10 +4,10 @@ use super::object_factory;
 use super::object_model::Object;
 use super::versions_repository;
 use sqlx::{Executor, Row};
+use std::convert::TryInto;
 
 pub async fn save_object(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     object: &Object,
 ) -> Result<(), &'static str> {
     let mut object_targets_values: Vec<String> = Vec::new();
@@ -16,7 +16,7 @@ pub async fn save_object(
     for target in object.targets.value.iter() {
         object_targets_values.push(format!(
             "(@new_object_id, (
-                SELECT `id` FROM `object_application_targets` WHERE `name` = '{}'))",
+                SELECT `uuid` FROM `object_application_targets` WHERE `name` = '{}'))",
             target
         ));
     }
@@ -24,7 +24,7 @@ pub async fn save_object(
     for language in object.languages.value.iter() {
         object_languages_values.push(format!(
             "(@new_object_id, (
-                SELECT `id` FROM `object_application_languages` WHERE `name` = '{}'))",
+                SELECT `uuid` FROM `object_application_languages` WHERE `name` = '{}'))",
             language
         ));
     }
@@ -72,23 +72,25 @@ pub async fn save_object(
         Ok(connection) => connection,
         Err(_) => panic!("Unable to open db connection"),
     };
+    let uuid = object.id.uuid();
 
-    let object_id = match db_connection
+    match db_connection
         .execute(sqlx::query!(
             "INSERT INTO `object_application_objects`
-            (`guid`, `name`, `description`)
+            (`uuid`, `name`, `description`)
             VALUES (?, ?, ?);",
-            object.id.uuid(),
+            uuid,
             object.name.value,
             object.description.value,
         ))
         .await
     {
-        Ok(r) => r.last_insert_id(),
+        Ok(r) => r.last_insert_rowid(),
         Err(e) => panic!("{:?}", e),
     };
 
-    versions_repository::save_versions(db_pool, object_id, &object.versions)
+    println!("object_id: {:?}", &uuid);
+    versions_repository::save_versions(db_pool, &uuid, &object.versions)
         .await
         .expect("Error saving object versions");
 
@@ -96,8 +98,7 @@ pub async fn save_object(
 }
 
 pub async fn read_object(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     id: &Id,
 ) -> Result<Object, &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -105,24 +106,27 @@ pub async fn read_object(
         Err(_) => panic!("Unable to open db connection"),
     };
 
+    // TODO make this a compiled query (see SQLX 0.6 bug)
     let mut rows = match db_connection
-        .fetch_all(sqlx::query!(
-            "SELECT object.id, object.guid, object.name, object.description,
-        GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
-        GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
-        FROM object_application_objects AS object
-        LEFT JOIN object_application_object_languages AS languages
-        ON object.id = languages.object_id
-        LEFT JOIN object_application_languages AS language
-        ON language.id = languages.language_id
-        LEFT JOIN object_application_object_targets AS targets
-        ON object.id = targets.object_id
-        LEFT JOIN object_application_targets AS target
-        ON targets.target_id = target.id
-        WHERE object.guid = ?
-        GROUP BY object.guid;",
-            &id.uuid(),
-        ))
+        .fetch_all(
+            sqlx::query(
+                "SELECT object.uuid AS id, object.name AS name, object.description AS description,
+            GROUP_CONCAT(REPLACE(DISTINCT(target.name), '', ''), ',') AS targets,
+            GROUP_CONCAT(REPLACE(DISTINCT(language.name), '', ''), ',') AS languages
+            FROM object_application_objects AS object
+            LEFT JOIN object_application_object_languages AS object_languages
+            ON object.id = object_languages.object_id
+            LEFT JOIN object_application_languages AS language
+            ON language.id = object_languages.language_id
+            LEFT JOIN object_application_object_targets AS object_targets
+            ON object.id = object_targets.object_id
+            LEFT JOIN object_application_targets AS target
+            ON target.id = object_targets.target_id
+            WHERE object.uuid = ?
+            GROUP BY object.id;",
+            )
+            .bind(&id.uuid()),
+        )
         .await
     {
         Ok(r) => r,
@@ -136,13 +140,14 @@ pub async fn read_object(
         //     Some(row) => row,
         //     None => break,
         // };
+        let id = id_factory::create_id(Some(row.get("id")))?;
 
-        let versions = versions_repository::read_versions(db_pool, row.get("id"))
+        let versions = versions_repository::read_versions(db_pool, &id)
             .await
             .expect("Error restoring object versions");
 
         match object_factory::restore_object(
-            row.get("guid"),
+            row.get("id"),
             row.get("name"),
             row.get("description"),
             row.get::<Option<&str>, &str>("languages")
@@ -168,8 +173,7 @@ pub async fn read_object(
 }
 
 pub async fn read_objects(
-    // db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
     name: Option<&str>,
     targets: Option<Vec<&str>>,
     languages: Option<Vec<&str>>,
@@ -202,43 +206,54 @@ pub async fn read_objects(
         Err(_) => panic!("Unable to open db connection"),
     };
 
+    // TODO make this a compiled query (see SQLX 0.6 bug)
     let mut rows = match db_connection
-        .fetch_all(sqlx::query!(
-            "SELECT object.id, object.guid, object.name, object.description
-            #GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,
-            #GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages
+        .fetch_all(
+            sqlx::query(
+                r#"SELECT object.uuid AS id, object.name AS name, object.description AS description,
+            GROUP_CONCAT(DISTINCT target.name) AS targets,
+            GROUP_CONCAT(DISTINCT language.name) AS languages
             FROM object_application_objects AS object
-            LEFT JOIN object_application_object_languages AS languages
-            ON object.id = languages.object_id
-            LEFT JOIN object_application_languages AS language
-            ON language.id = languages.language_id
-            LEFT JOIN object_application_object_targets AS targets
-            ON object.id = targets.object_id
+            LEFT JOIN object_application_object_targets AS object_targets
+            ON object.id = object_targets.object_id
             LEFT JOIN object_application_targets AS target
-            ON targets.target_id = target.id
-            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?)
-            OR MATCH(`description`) AGAINST (?));",
-            format!("%{}%", name),
-            targets,
-            languages,
-            keywords,
-        ))
+            ON target.id = object_targets.target_id
+            LEFT JOIN object_application_object_languages AS object_languages
+            ON object.id = object_languages.object_id
+            LEFT JOIN object_application_languages AS language
+            ON language.id = object_languages.language_id
+            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?))
+            GROUP BY object.id;"#,
+            )
+            .bind(format!("%{}%", name))
+            .bind(targets)
+            .bind(languages),
+        )
         .await
     {
         Ok(r) => r,
-        Err(_) => return Err("Error searching the database"),
+        Err(e) => {
+            println!("{:?}", e);
+            return Err("Error reading objects");
+        }
     };
 
     let mut objects: Vec<Object> = Vec::new();
 
     for row in rows {
-        // let id = row.get("id")?;
-        let versions = versions_repository::read_versions(db_pool, row.get("id"))
+        // TODO apparently sqlite will return something no matter what (empty row),
+        // so we have to account for this.
+        if row.get::<&str, &str>("id") == "" {
+            break;
+        }
+
+        let id = id_factory::create_id(Some(row.get("id")))?;
+        let versions = versions_repository::read_versions(db_pool, &id)
             .await
             .expect("Error restoring object versions");
 
         match object_factory::restore_object(
-            row.get("guid"),
+            row.get("id"),
             row.get("name"),
             row.get("description"),
             // row.get::<Option<&str>, &str>("languages")

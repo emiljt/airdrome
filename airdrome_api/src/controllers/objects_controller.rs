@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 // use events_service::Event;
 use crate::applications::object_application;
 use serde::{Deserialize, Serialize};
-use sqlx::MySqlPool;
+use sqlx::SqlitePool;
 use std::convert::TryFrom;
 use std::env;
 use std::fs::File;
@@ -12,7 +12,7 @@ use std::io::Read;
 use std::sync::mpsc;
 
 pub async fn get_objects(
-    db_pool: web::Data<MySqlPool>,
+    db_pool: web::Data<SqlitePool>,
     // event_tx: web::Data<mpsc::Sender<Event>>,
     query: web::Query<ObjectsQuery>,
 ) -> impl Responder {
@@ -142,7 +142,7 @@ pub async fn get_objects(
 }
 
 pub async fn get_object(
-    db_pool: web::Data<MySqlPool>,
+    db_pool: web::Data<SqlitePool>,
     object_id: web::Path<String>,
 ) -> HttpResponse {
     let guid: uuid::Uuid = match uuid::Uuid::parse_str(&object_id) {
@@ -171,9 +171,10 @@ pub async fn get_object(
 }
 
 pub async fn get_object_version_file(
-    db_pool: web::Data<MySqlPool>,
-    web::Path((object_guid, version_guid, file_type)): web::Path<(String, String, String)>,
+    db_pool: web::Data<SqlitePool>,
+    path: web::Path<(String, String, String)>,
 ) -> HttpResponse {
+    let (object_guid, version_guid, file_type) = path.into_inner();
     let object_guid: uuid::Uuid = match uuid::Uuid::parse_str(&object_guid) {
         Ok(i) => i,
         Err(_) => {

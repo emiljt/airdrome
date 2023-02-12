@@ -1,254 +1,65 @@
 {
-  "db": "MySQL",
-  "02769ec7fd4bbcf9d4718388abfadb559d34c4aa0592e7306c2a49b6dc5c6c82": {
-    "query": "SELECT object.id, object.guid, object.name, object.description,\n        GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,\n        GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages\n        FROM object_application_objects AS object\n        LEFT JOIN object_application_object_languages AS languages\n        ON object.id = languages.object_id\n        LEFT JOIN object_application_languages AS language\n        ON language.id = languages.language_id\n        LEFT JOIN object_application_object_targets AS targets\n        ON object.id = targets.object_id\n        LEFT JOIN object_application_targets AS target\n        ON targets.target_id = target.id\n        WHERE object.guid = ?\n        GROUP BY object.guid;",
+  "db": "SQLite",
+  "105acd81f0e25a1ef0c8ab875b471e9de612771cfc0417153452a2142e4cc999": {
     "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": {
-            "type": "Int24",
-            "flags": {
-              "bits": 547
-            },
-            "char_set": 63,
-            "max_size": 8
-          }
-        },
-        {
-          "ordinal": 1,
-          "name": "guid",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4101
-            },
-            "char_set": 224,
-            "max_size": 128
-          }
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4101
-            },
-            "char_set": 224,
-            "max_size": 400
-          }
-        },
-        {
-          "ordinal": 3,
-          "name": "description",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 8
-            },
-            "char_set": 224,
-            "max_size": 10000
-          }
-        },
-        {
-          "ordinal": 4,
-          "name": "targets",
-          "type_info": {
-            "type": "LongBlob",
-            "flags": {
-              "bits": 0
-            },
-            "char_set": 224,
-            "max_size": 16384
-          }
-        },
-        {
-          "ordinal": 5,
-          "name": "languages",
-          "type_info": {
-            "type": "LongBlob",
-            "flags": {
-              "bits": 0
-            },
-            "char_set": 224,
-            "max_size": 16384
-          }
-        }
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        true,
-        true
-      ]
-    }
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO `object_application_objects`\n            (`uuid`, `name`, `description`)\n            VALUES (?, ?, ?);"
   },
-  "0f7ec38ba298f72a59e736c1fced5d1354e5d0973dfcbd70fbc5203001c07732": {
-    "query": "SELECT guid, number, created_timestamp, commit, zip_hash\n            FROM object_application_versions AS version\n            WHERE object_id = ?;",
+  "51684a9dc3ed43d05026387ce36cd50fc254cf9a100a3ecf0b59d066f55bd451": {
     "describe": {
       "columns": [
         {
+          "name": "id",
           "ordinal": 0,
-          "name": "guid",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4101
-            },
-            "char_set": 224,
-            "max_size": 128
-          }
+          "type_info": "Text"
         },
         {
-          "ordinal": 1,
           "name": "number",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 0
-            },
-            "char_set": 224,
-            "max_size": 128
-          }
+          "ordinal": 1,
+          "type_info": "Text"
         },
         {
-          "ordinal": 2,
           "name": "created_timestamp",
-          "type_info": {
-            "type": "Datetime",
-            "flags": {
-              "bits": 4225
-            },
-            "char_set": 63,
-            "max_size": 19
-          }
+          "ordinal": 2,
+          "type_info": "Text"
         },
         {
-          "ordinal": 3,
           "name": "commit",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 0
-            },
-            "char_set": 224,
-            "max_size": 160
-          }
+          "ordinal": 3,
+          "type_info": "Text"
         },
         {
-          "ordinal": 4,
           "name": "zip_hash",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4097
-            },
-            "char_set": 224,
-            "max_size": 160
-          }
+          "ordinal": 4,
+          "type_info": "Text"
         }
       ],
-      "parameters": {
-        "Right": 1
-      },
       "nullable": [
         false,
         true,
         false,
         true,
         false
-      ]
-    }
-  },
-  "76facd42972a3901f3d61fa8986ef49fa5308260d23b12919669d9c29ca24433": {
-    "query": "INSERT INTO `object_application_objects`\n            (`guid`, `name`, `description`)\n            VALUES (?, ?, ?);",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 3
-      },
-      "nullable": []
-    }
-  },
-  "79ab472e60d96a4ad0579341c37662722a2d48228e688cd3d3801372652307dc": {
-    "query": "INSERT INTO `object_application_versions`\n                (`guid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)\n                VALUES (?, ?, ?, ?, ?, ?);",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 6
-      },
-      "nullable": []
-    }
-  },
-  "9674b02eaf1dafc1bbe6ed861d71b996ce1133b36ecaab253c0981d0400a7f02": {
-    "query": "SELECT object.id, object.guid, object.name, object.description\n            #GROUP_CONCAT(DISTINCT target.name SEPARATOR ',') AS targets,\n            #GROUP_CONCAT(DISTINCT language.name SEPARATOR ',') AS languages\n            FROM object_application_objects AS object\n            LEFT JOIN object_application_object_languages AS languages\n            ON object.id = languages.object_id\n            LEFT JOIN object_application_languages AS language\n            ON language.id = languages.language_id\n            LEFT JOIN object_application_object_targets AS targets\n            ON object.id = targets.object_id\n            LEFT JOIN object_application_targets AS target\n            ON targets.target_id = target.id\n            WHERE (object.name LIKE ? OR target.name IN (?) OR language.name IN (?)\n            OR MATCH(`description`) AGAINST (?));",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": {
-            "type": "Int24",
-            "flags": {
-              "bits": 547
-            },
-            "char_set": 63,
-            "max_size": 8
-          }
-        },
-        {
-          "ordinal": 1,
-          "name": "guid",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4101
-            },
-            "char_set": 224,
-            "max_size": 128
-          }
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4101
-            },
-            "char_set": 224,
-            "max_size": 400
-          }
-        },
-        {
-          "ordinal": 3,
-          "name": "description",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 8
-            },
-            "char_set": 224,
-            "max_size": 10000
-          }
-        }
       ],
       "parameters": {
-        "Right": 4
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true
-      ]
-    }
+        "Right": 1
+      }
+    },
+    "query": "SELECT `uuid` AS id, `number`, `created_timestamp`, `commit`, `zip_hash`\n            FROM object_application_versions AS version\n            WHERE object_id = ?;"
+  },
+  "f80c8646a978d46c25774e43aca6956362450dfcf90612082913bd384e2df463": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "INSERT INTO `object_application_versions`\n                (`uuid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)\n                VALUES (?, ?, ?, ?, ?, ?);"
   }
 }

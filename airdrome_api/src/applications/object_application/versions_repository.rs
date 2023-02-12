@@ -5,9 +5,8 @@ use chrono::NaiveDateTime;
 use sqlx::{Executor, Row};
 
 pub async fn save_versions(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
-    object_id: u64,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
+    object_id: &str,
     versions: &Versions,
 ) -> Result<(), &'static str> {
     let mut db_connection = match db_pool.acquire().await {
@@ -16,12 +15,14 @@ pub async fn save_versions(
     };
 
     for version in &versions.all {
+        let id = version.id.uuid();
+
         match db_connection
             .execute(sqlx::query!(
                 "INSERT INTO `object_application_versions`
-                (`guid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
+                (`uuid`, `number`, `created_timestamp`, `commit`, `zip_hash`, `object_id`)
                 VALUES (?, ?, ?, ?, ?, ?);",
-                &version.id.uuid(),
+                id,
                 version.number.value,
                 version.created_timestamp.value,
                 version.commit.value,
@@ -42,10 +43,10 @@ pub async fn save_versions(
 }
 
 pub async fn read_versions(
-    // mut db: sqlx::pool::PoolConnection<sqlx::MySql>,
-    db_pool: &sqlx::Pool<sqlx::MySql>,
-    object_id: u64,
+    db_pool: &sqlx::Pool<sqlx::Sqlite>,
+    object_id: &Id,
 ) -> Result<Versions, &'static str> {
+    let object_id = object_id.uuid();
     let mut db_connection = match db_pool.acquire().await {
         Ok(connection) => connection,
         Err(_) => panic!("Unable to open db connection"),
@@ -53,7 +54,7 @@ pub async fn read_versions(
 
     let mut rows = match db_connection
         .fetch_all(sqlx::query!(
-            "SELECT guid, number, created_timestamp, commit, zip_hash
+            "SELECT `uuid` AS id, `number`, `created_timestamp`, `commit`, `zip_hash`
             FROM object_application_versions AS version
             WHERE object_id = ?;",
             object_id
@@ -68,16 +69,14 @@ pub async fn read_versions(
 
     for row in rows {
         match versions_factory::restore_version(
-            row.get("guid"),
+            row.get("id"),
             row.get("number"),
             row.get("commit"),
             row.get("zip_hash"),
             // &NaiveDateTime::parse_from_str(row.get("created_timestamp"), "%Y-%m-%dT%H:%M:%S%z")
             // .expect("")
             // .to_string(),
-            &row.get::<NaiveDateTime, &str>("created_timestamp")
-                .format("%Y-%m-%dT%H:%M:%S")
-                .to_string(),
+            row.get("created_timestamp"),
         ) {
             Ok(version) => versions.push(version),
             Err(e) => {

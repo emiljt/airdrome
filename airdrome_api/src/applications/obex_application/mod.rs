@@ -5,7 +5,7 @@ use obex::obex::Obex;
 use std::path::Path;
 use std::sync::mpsc;
 
-pub async fn sync(db_pool: &sqlx::Pool<sqlx::MySql>, path: &str) {
+pub async fn sync(db_pool: &sqlx::Pool<sqlx::Sqlite>, path: &str) {
     let path = Path::new(path);
     let obex = Obex::new(
         "https://github.com/parallaxinc/propeller.git",
