@@ -33,7 +33,7 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
         Err(e) => {
             println!("{}", e);
             panic!("Unable to authorize storage service")
-        },
+        }
     };
 
     let token = response
