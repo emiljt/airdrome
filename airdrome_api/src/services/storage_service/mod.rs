@@ -30,7 +30,10 @@ pub async fn authorize_account() -> Result<Session, &'static str> {
         .await
     {
         Ok(r) => r,
-        Err(e) => panic!("Unable to authorize storage service"),
+        Err(e) => {
+            println!("{}", e);
+            panic!("Unable to authorize storage service")
+        },
     };
 
     let token = response
@@ -324,11 +327,6 @@ enum FileAction {
 mod tests {
     use super::*;
 
-    const TEST_BUCKET_NAME: &str = "api-test";
-    const TEST_BUCKET_ID: &str = "2cb36c59ee1dd5e87250061c";
-    const TEST_FILE_ID: &str =
-        "4_z2cb36c59ee1dd5e87250061c_f113a16a06639fd32_d20201119_m050453_c002_v0001149_t0012";
-
     #[actix_rt::test]
     async fn authorization() {
         let token = authorize_account().await;
@@ -338,43 +336,47 @@ mod tests {
 
     #[actix_rt::test]
     async fn download_authorization() {
+        let bucket_id = env::var("B2_TEST_BUCKET_ID").expect("B2 test bucket Id not set");
         let session = authorize_account()
             .await
             .expect("Unable to authenticate with storage service");
-        let token = get_download_authorization(&session, TEST_BUCKET_ID, "", 300).await;
+        let token = get_download_authorization(&session, &bucket_id, "", 300).await;
 
         assert!(token.is_ok());
     }
 
     #[actix_rt::test]
     async fn file_information() {
+        let file_id = env::var("B2_TEST_FILE_ID").expect("B2 test file Id not set");
         let session = authorize_account()
             .await
             .expect("Unable to authenticate with storage service");
 
-        let info = get_file_info(session, TEST_FILE_ID).await;
+        let info = get_file_info(session, &file_id).await;
 
         assert!(info.is_ok());
     }
 
     #[actix_rt::test]
     async fn upload_url() {
+        let bucket_id = env::var("B2_TEST_BUCKET_ID").expect("B2 test bucket Id not set");
         let session = authorize_account()
             .await
             .expect("Unable to authenticate with storage service");
 
-        let url = get_upload_url(session, TEST_BUCKET_ID).await;
+        let url = get_upload_url(session, &bucket_id).await;
 
         assert!(url.is_ok());
     }
 
     #[actix_rt::test]
     async fn upload() {
+        let bucket_id = env::var("B2_TEST_BUCKET_ID").expect("B2 test bucket Id not set");
         let session = authorize_account()
             .await
             .expect("Unable to authenticate with storage service");
 
-        let url = get_upload_url(session, TEST_BUCKET_ID)
+        let url = get_upload_url(session, &bucket_id)
             .await
             .expect("Failed to get upload URL");
         let info = upload_file(url, "./Cargo.toml", None, None).await;
@@ -384,11 +386,12 @@ mod tests {
 
     #[actix_rt::test]
     async fn download() {
+        let bucket_name = env::var("B2_TEST_BUCKET_NAME").expect("B2 test bucket name not set");
         let session = authorize_account()
             .await
             .expect("Unable to authenticate with storage service");
 
-        let result = download_file(session, TEST_BUCKET_NAME, "/tmp", "Cargo.toml").await;
+        let result = download_file(session, &bucket_name, "/tmp", "Cargo.toml").await;
 
         assert!(result.is_ok());
     }
